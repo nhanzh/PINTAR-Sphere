@@ -1,0 +1,12 @@
+{
+  "projectId": "pintar-sphere",
+  "appId": "1:829082367809:web:27708c0298960f259cd3c0",
+  "apiKey": "AIzaSyBHuWIV-V65gyxxnWuP_qAIGljvoO5sJcs",
+  "authDomain": "pintar-sphere.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "pintar-sphere.firebasestorage.app",
+  "messagingSenderId": "829082367809",
+  "measurementId": "G-NPM4HC9S0Y",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

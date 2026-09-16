@@ -1,0 +1,197 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for student or lecturer",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "lecturer"] },
+        "setNumber": { "type": "number" },
+        "matricNumber": { "type": "string" },
+        "taughtSubjects": { "type": "array" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "ResourceItem": {
+      "title": "ResourceItem",
+      "description": "Learning materials uploaded by lecturers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "fileType": { "type": "string" },
+        "fileSize": { "type": "string" },
+        "targetSets": { "type": "array" },
+        "uploaderName": { "type": "string" },
+        "uploaderEmail": { "type": "string" },
+        "downloadCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "subject", "title", "uploaderEmail", "targetSets"]
+    },
+    "ScheduleEvent": {
+      "title": "ScheduleEvent",
+      "description": "Class schedules and academic calendar with reschedule notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "setNumber": { "type": "string" },
+        "day": { "type": "string" },
+        "time": { "type": "string" },
+        "venue": { "type": "string" },
+        "lecturerName": { "type": "string" },
+        "isRescheduled": { "type": "boolean" },
+        "rescheduleNote": { "type": "string" }
+      },
+      "required": ["id", "subject", "setNumber", "day", "time"]
+    },
+    "Deadline": {
+      "title": "Deadline",
+      "description": "Assignments, quizzes, and presentations created by lecturers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["assignment", "quiz", "presentation"] },
+        "subject": { "type": "string" },
+        "targetSets": { "type": "array" },
+        "dueDate": { "type": "string" },
+        "lecturerName": { "type": "string" },
+        "lecturerEmail": { "type": "string" },
+        "maxScore": { "type": "number" }
+      },
+      "required": ["id", "title", "type", "subject", "targetSets", "dueDate"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Student submissions for deadlines with timestamp and late status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "deadlineId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "setNumber": { "type": "number" },
+        "submittedAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["Submitted", "Late"] },
+        "submissionNote": { "type": "string" }
+      },
+      "required": ["id", "deadlineId", "studentId", "submittedAt", "status"]
+    },
+    "PrivateNote": {
+      "title": "PrivateNote",
+      "description": "Personal student notes on timetable invisible to others and lecturers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "studentEmail", "content"]
+    },
+    "StudentGrade": {
+      "title": "StudentGrade",
+      "description": "Official student grades and breakdown entered by lecturers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "setNumber": { "type": "number" },
+        "courseCode": { "type": "string" },
+        "courseName": { "type": "string" },
+        "breakdown": { "type": "object" },
+        "totalScore": { "type": "number" },
+        "letterGrade": { "type": "string" },
+        "gradePoint": { "type": "number" }
+      },
+      "required": ["id", "studentId", "courseCode", "totalScore", "letterGrade"]
+    },
+    "ForumPost": {
+      "title": "ForumPost",
+      "description": "Non-anonymous public community discussion post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "authorRole": { "type": "string" },
+        "authorSet": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "subject": { "type": "string" },
+        "likes": { "type": "number" },
+        "comments": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "authorName", "authorEmail", "title", "content"]
+    },
+    "BroadcastNotice": {
+      "title": "BroadcastNotice",
+      "description": "Urgent and regular broadcast notices sent by lecturers to students",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "lecturerId": { "type": "string" },
+        "lecturerName": { "type": "string" },
+        "lecturerEmail": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "subjectCode": { "type": "string" },
+        "targetSet": { "type": "string" },
+        "priority": { "type": "string", "enum": ["urgent", "reschedule", "info"] },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "actionUrl": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "lecturerName", "subjectName", "targetSet", "priority", "title", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered users"
+    },
+    "/resources/{resourceId}": {
+      "schema": "ResourceItem",
+      "description": "Learning resources"
+    },
+    "/scheduleEvents/{eventId}": {
+      "schema": "ScheduleEvent",
+      "description": "Class timetable events"
+    },
+    "/deadlines/{deadlineId}": {
+      "schema": "Deadline",
+      "description": "Assessment deadlines"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Student work submissions"
+    },
+    "/privateNotes/{noteId}": {
+      "schema": "PrivateNote",
+      "description": "Student personal private notes"
+    },
+    "/grades/{gradeId}": {
+      "schema": "StudentGrade",
+      "description": "Course marks entered by lecturers"
+    },
+    "/forumPosts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Public community forum posts"
+    },
+    "/broadcastNotices/{noticeId}": {
+      "schema": "BroadcastNotice",
+      "description": "Lecturer broadcast notifications to students"
+    }
+  }
+}
