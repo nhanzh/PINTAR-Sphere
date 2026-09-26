@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isStudentEmail() {
+      return request.auth != null && request.auth.token.email.matches('.*@siswa[.]ukm[.]edu[.]my');
+    }
+    
+    function isLecturerEmail() {
+      return request.auth != null && request.auth.token.email.matches('.*@ukm[.]edu[.]my');
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Resources collection
+    match /resources/{resourceId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Schedules collection
+    match /schedules/{scheduleId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Deadlines collection
+    match /deadlines/{deadlineId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Submissions collection
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Private Notes collection
+    match /privateNotes/{noteId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Grades collection
+    match /grades/{gradeId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Co-curricular (Koko) records collection
+    match /kokoRecords/{recordId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Co-curricular (Koko) submissions collection
+    match /kokoSubmissions/{submissionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Forum Posts collection
+    match /forumPosts/{postId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Broadcast Notices collection
+    match /broadcastNotices/{noticeId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "PINTAR@Sphere",
+  "description": "Exclusive ASASIpintar academic portal linking student and lecturer dashboards with real-time broadcasts, class rescheduling, GPA calculation, and multilingual support (Malay, English, Chinese, Tamil).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
