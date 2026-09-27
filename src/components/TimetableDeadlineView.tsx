@@ -16,6 +16,7 @@ import { SUBJECTS } from '../data/mockData.ts';
 import { getSubjectDisplayName } from '../utils/subjectNames.ts';
 import { getLecturerForSetAndSubject } from '../utils/lecturerSetSync.ts';
 import { openOrDownloadSubmissionFile } from '../utils/fileUtils.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -71,7 +72,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
 }) => {
   const { lang, dict } = useLanguage();
   const isStudent = user.role === 'student';
-  const studentSet = user.setNumber || 3;
+  const studentSet = getStudentSetNumber(user);
 
   // Active view: 'month' | 'week' | 'list'
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
@@ -1554,7 +1555,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
                                       {sub.studentName}
                                     </span>
                                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-                                      Set {sub.setNumber}
+                                      Set {getStudentSetNumber(sub)}
                                     </span>
                                     <span
                                       className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${

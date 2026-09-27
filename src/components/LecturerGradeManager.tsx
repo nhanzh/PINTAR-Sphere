@@ -19,6 +19,7 @@ import {
   calculateKoko10Total,
 } from '../data/kokoData.ts';
 import { OFFICIAL_318_STUDENTS_ROSTER } from '../data/officialStudentRoster.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import { dataService } from '../services/dataService.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import {
@@ -93,14 +94,22 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
     initialStudentEmail || 'ap05710@siswa.ukm.edu.my'
   );
 
-  // Allowed courses for this lecturer (Includes taught subject, other subjects & Kokurikulum)
+  const isPenyelaras =
+    (user.email || '').toLowerCase() === 'asasipintarhub@gmail.com' ||
+    (user.email || '').toLowerCase().includes('penyelaras') ||
+    (user.name || '').toLowerCase().includes('penyelaras');
+
+  // Allowed courses for this lecturer (Penyelaras gets all, regular lecturer locked strictly to taught subject)
   const allowedCourseCodes = useMemo(() => {
     const all = Object.keys(COURSE_ASSESSMENT_SCHEMAS);
-    if (user.taughtSubjectCode && all.includes(user.taughtSubjectCode)) {
-      return [user.taughtSubjectCode, ...all.filter((c) => c !== user.taughtSubjectCode)];
+    if (isPenyelaras) {
+      return all;
     }
-    return all;
-  }, [user.taughtSubjectCode]);
+    if (user.taughtSubjectCode && all.includes(user.taughtSubjectCode)) {
+      return [user.taughtSubjectCode];
+    }
+    return ['PNAP0133'];
+  }, [isPenyelaras, user.taughtSubjectCode]);
 
   const defaultCourseCode = allowedCourseCodes[0] || 'PNAP0133';
   const [selectedCourseCode, setSelectedCourseCode] = useState<string>(defaultCourseCode);
@@ -510,17 +519,24 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
               {/* Toolbar Controls */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Subject Selector */}
-                <select
-                  value={selectedCourseCode}
-                  onChange={(e) => setSelectedCourseCode(e.target.value)}
-                  className="px-3 py-1.5 text-xs rounded-xl bg-white text-slate-900 font-bold border-none cursor-pointer"
-                >
-                  {allowedCourseCodes.map((code) => (
-                    <option key={code} value={code}>
-                      {code} - {COURSE_ASSESSMENT_SCHEMAS[code]?.courseName}
-                    </option>
-                  ))}
-                </select>
+                {isPenyelaras ? (
+                  <select
+                    value={selectedCourseCode}
+                    onChange={(e) => setSelectedCourseCode(e.target.value)}
+                    className="px-3 py-1.5 text-xs rounded-xl bg-white text-slate-900 font-bold border-none cursor-pointer"
+                  >
+                    {allowedCourseCodes.map((code) => (
+                      <option key={code} value={code}>
+                        {code} - {COURSE_ASSESSMENT_SCHEMAS[code]?.courseName}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="px-3 py-1.5 text-xs rounded-xl bg-white/10 text-white font-bold border border-white/20 flex items-center gap-1.5 shadow-2xs">
+                    <Lock className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Subjek Ajar: {selectedCourseCode} - {COURSE_ASSESSMENT_SCHEMAS[selectedCourseCode]?.courseName}</span>
+                  </div>
+                )}
 
                 {/* Set Filter */}
                 <select
@@ -660,7 +676,7 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
 
                         {/* Set */}
                         <td className="py-2 px-2 border-r border-slate-200 dark:border-slate-700 text-center font-mono font-bold text-blue-700 dark:text-blue-400">
-                          S{st.setNumber}
+                          S{getStudentSetNumber(st)}
                         </td>
 
                         {/* Component Inputs Grid Cells */}
@@ -832,7 +848,7 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
                 >
                   {filteredStudents.map((st) => (
                     <option key={st.id} value={st.email}>
-                      {st.name} ({st.matricNumber}) - Set {st.setNumber}
+                      {st.name} ({st.matricNumber}) - Set {getStudentSetNumber(st)}
                     </option>
                   ))}
                 </select>
@@ -845,11 +861,11 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
                     {currentStudent.name}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    Matrik: {currentStudent.matricNumber} • Set {currentStudent.setNumber}
+                    Matrik: {currentStudent.matricNumber} • Set {getStudentSetNumber(currentStudent)}
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
-                  Set {currentStudent.setNumber}
+                  Set {getStudentSetNumber(currentStudent)}
                 </span>
               </div>
             </div>
@@ -868,17 +884,24 @@ export const LecturerGradeManager: React.FC<LecturerGradeManagerProps> = ({
                 </p>
               </div>
 
-              <select
-                value={selectedCourseCode}
-                onChange={(e) => setSelectedCourseCode(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
-              >
-                {allowedCourseCodes.map((code) => (
-                  <option key={code} value={code}>
-                    {code} - {COURSE_ASSESSMENT_SCHEMAS[code]?.courseName}
-                  </option>
-                ))}
-              </select>
+              {isPenyelaras ? (
+                <select
+                  value={selectedCourseCode}
+                  onChange={(e) => setSelectedCourseCode(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                >
+                  {allowedCourseCodes.map((code) => (
+                    <option key={code} value={code}>
+                      {code} - {COURSE_ASSESSMENT_SCHEMAS[code]?.courseName}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{selectedCourseCode} - {COURSE_ASSESSMENT_SCHEMAS[selectedCourseCode]?.courseName}</span>
+                </div>
+              )}
             </div>
 
             {/* Component Inputs Grid */}

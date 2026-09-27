@@ -12,18 +12,21 @@ import {
   ForumPost,
   PersonalTimetableNote,
   BroadcastNotice,
+  AppNotification,
 } from './types.ts';
 import { dataService } from './services/dataService.ts';
 import { authService } from './services/authService.ts';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext.tsx';
 import { ThemeProvider } from './theme/ThemeContext.tsx';
 import { isWithin24Hours } from './utils/dateUtils.ts';
+import { hydrateStudentProfile } from './utils/studentUtils.ts';
 
 import { PortalHeaderBar } from './components/PortalHeaderBar.tsx';
 import { PortalLoginView } from './components/PortalLoginView.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { LiveBroadcastBanner } from './components/LiveBroadcastBanner.tsx';
 import { BroadcastModal } from './components/BroadcastModal.tsx';
+import { NotificationCenterModal } from './components/NotificationCenterModal.tsx';
 import { StudentDashboardView } from './components/StudentDashboardView.tsx';
 import { LecturerDashboardView } from './components/LecturerDashboardView.tsx';
 import { ResourcesView } from './components/ResourcesView.tsx';
@@ -70,6 +73,11 @@ function getStoredUser(role: UserRole): UserProfile | null {
           localStorage.removeItem(roleKey);
           return null;
         }
+        if (role === 'student') {
+          const hydrated = hydrateStudentProfile(parsed.email, parsed);
+          localStorage.setItem(roleKey, JSON.stringify(hydrated));
+          return hydrated;
+        }
         return parsed;
       }
     }
@@ -81,6 +89,7 @@ function AppContent() {
   const { lang, dict } = useLanguage();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [aiPromptToTrigger, setAiPromptToTrigger] = useState<string>('');
 
   // Active Portal Role and User Profile directly determined by URL
@@ -96,6 +105,7 @@ function AppContent() {
   const [kokoRecords, setKokoRecords] = useState<StudentKokoRecord[]>([]);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [broadcasts, setBroadcasts] = useState<BroadcastNotice[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [privateNotes, setPrivateNotes] = useState<PersonalTimetableNote[]>([]);
 
   // Synchronize URL and Portal state on navigation / popstate
@@ -164,6 +174,16 @@ function AppContent() {
       unsubBroadcasts();
     };
   }, []);
+
+  // Subscribe to user notifications
+  useEffect(() => {
+    if (user?.email) {
+      const unsubNotifs = dataService.subscribeToNotifications(user.email, (data) =>
+        setNotifications(data)
+      );
+      return () => unsubNotifs();
+    }
+  }, [user?.email]);
 
   // Update private notes when user changes
   useEffect(() => {
@@ -242,10 +262,22 @@ function AppContent() {
         onOpenBroadcastModal={() => setIsBroadcastModalOpen(true)}
         rescheduleAlertCount={rescheduleAlertCount}
         broadcastAlertCount={broadcasts.length}
+        notifications={notifications}
+        onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+        onSwitchUser={(newUser) => setUser(newUser)}
       />
 
       {/* Real-Time Live Broadcast Banner (Notice from Lecturer to Student) */}
       <LiveBroadcastBanner broadcasts={broadcasts} user={user} />
+
+      {/* Notification Center Modal (In-App & Email Dispatch Center) */}
+      <NotificationCenterModal
+        user={user}
+        notifications={notifications}
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+        onNavigateTab={(tab) => setActiveTab(tab)}
+      />
 
       {/* Lecturer Broadcast Dispatcher Modal */}
       {user.role === 'lecturer' && (
@@ -374,7 +406,7 @@ function AppContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-medium">
             <span className="font-extrabold text-indigo-700 dark:text-indigo-400">PINTAR@Sphere</span>
-            <span>— Universiti Kebangsaan Malaysia (UKM) • ASASIpintar Kolej GENIUS@Pintar</span>
+            <span>— Program ASASIpintar • Universiti Kebangsaan Malaysia (UKM)</span>
           </div>
           <div className="text-[11px] text-slate-400 dark:text-slate-500">
             {dict.exclusiveNotice}

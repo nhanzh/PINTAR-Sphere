@@ -649,7 +649,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             {sch.day}
                           </span>
                           <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded">
-                            Set {sch.setNumber}
+                            {sch.setNumber === 'all' ? 'Semua Set (Kuliah)' : `Set ${sch.setNumber || 1}`}
                           </span>
                         </div>
                       </div>
@@ -1106,7 +1106,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <option value="">-- {dict.selectSetToDisplay} --</option>
                   {schedules.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.subject} ({s.courseCode}) • Set {s.setNumber} • {getDayName(s.day)} {s.startTime}-{s.endTime}
+                      {s.subject} ({s.courseCode}) • {s.setNumber === 'all' ? 'Semua Set (Kuliah)' : `Set ${s.setNumber || 1}`} • {getDayName(s.day)} {s.startTime}-{s.endTime}
                     </option>
                   ))}
                 </select>

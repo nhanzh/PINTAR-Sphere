@@ -27,12 +27,12 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
 
   const getInitialGreeting = () => {
     if (lang === 'ms') {
-      return `Salam sejahtera ${user.name}! Saya Pembimbing Akademik Pintar AI untuk UKM ASASIpintar. Saya boleh membantu dengan soalan Kimia I, Fizik I, Biologi I, Statistik, Penaakulan Logik, atau unjuran GPA Semester 1 (dasar 2 sains terbaik + statistik). Ada apa yang boleh saya bantu hari ini?`;
+      return `Hello ${user.name} Saya PINTAR AI Mentor untuk UKM ASASIpintar. Ada apa yang boleh saya bantu hari ini?`;
     }
     if (lang === 'zh') {
-      return `您好 ${user.name}！我是 UKM ASASIpintar 的 PINTAR AI 学习导师。我可以协助解答化学 I、物理 I、生物 I、统计学、逻辑推理或第一学期 GPA 预测（2门最佳理科 + 统计学）。请问今天有什么可以帮您的？`;
+      return `Hello ${user.name} 我是 UKM ASASIpintar 的 PINTAR AI Mentor。请问今天有什么可以帮您的？`;
     }
-    return `Hello ${user.name}! I am your PINTAR AI Study Mentor for UKM ASASIpintar. I can assist you with step-by-step solutions in Chemistry I (kinetics, thermodynamics, equilibrium), Physics I (vectors, torque, SHM), Biology I, Statistics (probability, distributions), Logical Reasoning, or guide your Semester 1 GPA projections (2 best sciences + statistics). How can I help you today?`;
+    return `Hello ${user.name} I am your PINTAR AI Mentor for UKM ASASIpintar. How can I help you today?`;
   };
 
   const [messages, setMessages] = useState<ChatMessage[]>([

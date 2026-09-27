@@ -13,6 +13,7 @@ import {
   Bookmark
 } from 'lucide-react';
 import { UserProfile } from '../types.ts';
+import { isKokoCoordinator } from '../utils/studentUtils.ts';
 
 interface SidebarProps {
   activeTab: string;
@@ -102,7 +103,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-3 sticky top-20">
         {/* Navigation Items */}
         <nav className="space-y-1" aria-label="Main Navigation">
-          {(navItems || []).map((item) => {
+          {(navItems || [])
+            .filter((item) => {
+              if (item.id === 'koko' && user.role === 'lecturer' && !isKokoCoordinator(user.email, user.name)) {
+                return false;
+              }
+              return true;
+            })
+            .map((item) => {
             const Icon = item.icon;
             const isActive =
               activeTab === item.id ||

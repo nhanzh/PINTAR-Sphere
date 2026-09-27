@@ -264,9 +264,35 @@ export interface ForumComment {
   imageUrl?: string;
   fileName?: string;
   fileUrl?: string;
+  replyToAuthorName?: string;
   reactions?: ForumReaction[];
   createdAt: string;
   likes: number;
+}
+
+export type NotificationType =
+  | 'community_like'
+  | 'community_reply'
+  | 'community_reaction'
+  | 'resource_uploaded'
+  | 'grade_published'
+  | 'koko_submitted'
+  | 'koko_reviewed'
+  | 'deadline_assigned'
+  | 'assignment_submitted'
+  | 'broadcast';
+
+export interface AppNotification {
+  id: string;
+  recipientEmail: string; // 'all' or specific email e.g. 'ap05710@siswa.ukm.edu.my'
+  recipientRole?: UserRole | 'all';
+  type: NotificationType;
+  title: string;
+  message: string;
+  linkTab?: ActiveTab;
+  senderName?: string;
+  createdAt: string;
+  isRead?: boolean;
 }
 
 export interface ForumPost {

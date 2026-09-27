@@ -684,3 +684,28 @@ export const INITIAL_FORUM_POSTS: ForumPost[] = [];
 
 // Live Broadcast Dispatches (Empty initially as portal is newly launched - connects real-time when lecturers send alerts)
 export const INITIAL_BROADCASTS: BroadcastNotice[] = [];
+
+export const INITIAL_NOTIFICATIONS: any[] = [
+  {
+    id: 'notif-1',
+    recipientEmail: 'all',
+    type: 'resource_uploaded',
+    title: 'Nota Kuliah Baharu Dimuat Naik',
+    message: 'Dr. Nurul Huda telah memuat naik Nota Kuliah PNAP0133 (Kimia) dalam Bahan Pembelajaran.',
+    linkTab: 'resources',
+    senderName: 'Dr. Nurul Huda',
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'notif-2',
+    recipientEmail: 'all',
+    type: 'broadcast',
+    title: 'Pengumuman Penting ASASIpintar',
+    message: 'Pusat ASASIpintar Hub mengingatkan pelajar untuk menyemak jadual ujian pertengahan semester.',
+    linkTab: 'timetable',
+    senderName: 'Penyelaras ASASIpintar UKM',
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    isRead: false,
+  },
+];

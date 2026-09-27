@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UserProfile, UserRole, SubjectId } from '../types.ts';
 import { SUBJECTS } from '../data/mockData.ts';
 import { dataService } from '../services/dataService.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import { User, Shield, GraduationCap, X, ArrowRight } from 'lucide-react';
 
 interface AuthModalProps {
@@ -90,7 +91,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-xs text-slate-500 mt-0.5">
               Current user:{' '}
               <span className="font-semibold text-indigo-600">
-                {currentUser.name} ({currentUser.role === 'student' ? `Set ${currentUser.setNumber}` : currentUser.taughtSubjectName})
+                {currentUser.name} ({currentUser.role === 'student' ? `Set ${getStudentSetNumber(currentUser)}` : currentUser.taughtSubjectName})
               </span>
             </p>
           </div>

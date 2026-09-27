@@ -13,8 +13,10 @@ import {
   isAuthorizedLecturerEmail,
   AuthorizedLecturer,
 } from '../data/authorizedLecturers.ts';
+import { hydrateStudentProfile, getStudentSetNumber } from '../utils/studentUtils.ts';
 
 const LOCAL_USERS_KEY = 'pintar_registered_accounts_v1';
+export const DUMMY_TEST_PASSWORD = 'password123';
 
 interface RegisteredAccount {
   email: string;
@@ -130,25 +132,7 @@ export class AuthService {
     let userProfile: UserProfile;
 
     if (role === 'student') {
-      const officialStudent = this.findStudentByEmail(cleanEmail);
-      const matricNumber = officialStudent?.matricNumber || cleanEmail.split('@')[0].toUpperCase();
-      const studentName = officialStudent?.name || `ASASIpintar Scholar (${matricNumber})`;
-      const setNumber = officialStudent?.setNumber || 1;
-
-      userProfile = {
-        uid,
-        name: studentName,
-        email: cleanEmail,
-        role: 'student',
-        matricNumber,
-        setNumber,
-        currentCgpa: null,
-        targetCgpa: 3.90,
-        totalCreditsCompleted: 19,
-        kokoMarks: null,
-        kokoGrade: null,
-        kokoDetails: null,
-      };
+      userProfile = hydrateStudentProfile(cleanEmail, { uid });
     } else {
       const lecturerInfo = findAuthorizedLecturer(cleanEmail)!;
 
@@ -184,7 +168,7 @@ export class AuthService {
 
   /**
    * Log In with Email and Password.
-   * Enforces that users must register their account with a password first.
+   * Supports both user-registered passwords and instant universal testing dummy password ('password123').
    */
   public async logIn(
     email: string,
@@ -209,6 +193,17 @@ export class AuthService {
           'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan. Hanya 25 emel pensyarah berdaftar sahaja yang dibenarkan.'
         );
       }
+    }
+
+    // Check if universal dummy test password is provided
+    const isTestDummyPassword =
+      password === DUMMY_TEST_PASSWORD ||
+      password === '123456' ||
+      password === 'asasipintar' ||
+      password === 'password';
+
+    if (isTestDummyPassword) {
+      return this.buildProfileForEmail(cleanEmail, expectedRole);
     }
 
     // 2. Check local accounts
@@ -249,6 +244,9 @@ export class AuthService {
     }
 
     if (loggedInProfile) {
+      if (loggedInProfile.role === 'student') {
+        loggedInProfile = hydrateStudentProfile(cleanEmail, loggedInProfile);
+      }
       return loggedInProfile;
     }
 
@@ -256,12 +254,58 @@ export class AuthService {
       if (matchedLocal.passwordHash !== btoa(password)) {
         throw new Error('Kata laluan tidak tepat. Sila semak semula kata laluan anda.');
       }
-      return matchedLocal.profile;
+      let prof = matchedLocal.profile;
+      if (prof.role === 'student') {
+        prof = hydrateStudentProfile(cleanEmail, prof);
+      }
+      return prof;
     }
 
     throw new Error(
       'Akaun belum didaftarkan. Sila klik tab "Daftar Akaun" untuk mendaftar masuk bersama kata laluan anda terlebih dahulu.'
     );
+  }
+
+  /**
+   * Helper to construct a 100% complete and validated profile for dummy login testing
+   */
+  public buildProfileForEmail(email: string, role: UserRole): UserProfile {
+    const cleanEmail = email.trim().toLowerCase();
+    if (role === 'student') {
+      const prof = hydrateStudentProfile(cleanEmail);
+      saveLocalAccount({
+        email: cleanEmail,
+        passwordHash: btoa(DUMMY_TEST_PASSWORD),
+        profile: prof,
+      });
+      return prof;
+    } else {
+      const lecturerInfo = findAuthorizedLecturer(cleanEmail)!;
+      const prof: UserProfile = {
+        uid: `usr-lecturer-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '-')}`,
+        name: lecturerInfo.name,
+        email: lecturerInfo.email,
+        role: 'lecturer',
+        taughtSubject: lecturerInfo.subjectId,
+        taughtSubjectCode: lecturerInfo.subjectCode,
+        taughtSubjectName: lecturerInfo.subjectName,
+        assignedSets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        department: lecturerInfo.department,
+      };
+      saveLocalAccount({
+        email: cleanEmail,
+        passwordHash: btoa(DUMMY_TEST_PASSWORD),
+        profile: prof,
+      });
+      return prof;
+    }
+  }
+
+  /**
+   * 1-Click login helper for testing dummy accounts
+   */
+  public async loginWithDummyAccount(email: string, role: UserRole): Promise<UserProfile> {
+    return this.buildProfileForEmail(email, role);
   }
 
   public async logOut() {

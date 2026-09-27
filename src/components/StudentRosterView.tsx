@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile, StudentRosterItem } from '../types.ts';
 import { STUDENTS_ROSTER } from '../data/mockData.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import {
   Users,
@@ -142,7 +143,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({ user }) =>
                   </td>
                   <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">
                     <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 font-mono">
-                      Set {st.setNumber}
+                      Set {getStudentSetNumber(st)}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-mono text-[11px]">

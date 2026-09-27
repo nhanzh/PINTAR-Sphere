@@ -26,8 +26,10 @@ import {
   ForumReaction,
   StudentRosterItem,
   BroadcastNotice,
+  AppNotification,
 } from '../types.ts';
 import { isWithin24Hours } from '../utils/dateUtils.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import {
   INITIAL_RESOURCES,
   INITIAL_SCHEDULES,
@@ -38,6 +40,7 @@ import {
   INITIAL_FORUM_POSTS,
   STUDENT_ROSTER,
   INITIAL_BROADCASTS,
+  INITIAL_NOTIFICATIONS,
 } from '../data/mockData.ts';
 
 // Local storage keys for offline / fallback persistence
@@ -53,6 +56,7 @@ const KEYS = {
   FORUM: 'pintar_forum_v5',
   STUDENTS: 'pintar_students_v2',
   BROADCASTS: 'pintar_broadcasts_v3_live',
+  NOTIFICATIONS: 'pintar_notifications_v1',
 };
 
 const syncChannel =
@@ -67,6 +71,23 @@ function getLocal<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj as any;
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeForFirestore(item)) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return obj;
 }
 
 function saveLocal<T>(key: string, data: T): void {
@@ -192,10 +213,19 @@ class DataService {
 
     // Sync to Firestore
     try {
-      await setDoc(doc(db, 'resources', newItem.id), newItem);
+      await setDoc(doc(db, 'resources', newItem.id), sanitizeForFirestore(newItem));
     } catch (err) {
       console.warn('Firestore addResource sync error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'resource_uploaded',
+      title: 'Nota & Bahan Pembelajaran Baharu',
+      message: `${resource.uploadedBy} telah memuat naik bahan baharu: "${resource.title}" (${resource.subject}).`,
+      linkTab: 'resources',
+      senderName: resource.uploadedBy,
+    });
 
     return newItem;
   }
@@ -402,10 +432,19 @@ class DataService {
     saveLocal(KEYS.DEADLINES, updated);
 
     try {
-      await setDoc(doc(db, 'deadlines', newItem.id), newItem);
+      await setDoc(doc(db, 'deadlines', newItem.id), sanitizeForFirestore(newItem));
     } catch (err) {
       console.warn('Firestore addDeadline sync error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'deadline_assigned',
+      title: 'Tugasan & Tarikh Akhir Baharu',
+      message: `${deadline.lecturerName} telah menugaskan "${deadline.title}" (${deadline.subject}) dengan tarikh akhir ${new Date(deadline.dueDate).toLocaleDateString('ms-MY')}.`,
+      linkTab: 'timetable',
+      senderName: deadline.lecturerName,
+    });
 
     return newItem;
   }
@@ -424,10 +463,15 @@ class DataService {
 
   // --- SUBMISSIONS ---
   public subscribeSubmissions(callback: (submissions: SubmissionRecord[]) => void): () => void {
-    const localData = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
+    const localData = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS).map((sub) => ({
+      ...sub,
+      setNumber: getStudentSetNumber(sub),
+    }));
     callback(localData);
 
-    const unsubSync = registerSyncListener<SubmissionRecord[]>(KEYS.SUBMISSIONS, callback);
+    const unsubSync = registerSyncListener<SubmissionRecord[]>(KEYS.SUBMISSIONS, (data) => {
+      callback((data || []).map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) })));
+    });
 
     try {
       const q = query(collection(db, 'submissions'));
@@ -437,7 +481,12 @@ class DataService {
           if (!snapshot.empty) {
             const items: SubmissionRecord[] = [];
             snapshot.forEach((docSnap) => {
-              items.push({ id: docSnap.id, ...(docSnap.data() as any) });
+              const data = docSnap.data() as any;
+              items.push({
+                id: docSnap.id,
+                ...data,
+                setNumber: getStudentSetNumber(data),
+              });
             });
             saveLocal(KEYS.SUBMISSIONS, items);
             callback(items);
@@ -469,6 +518,7 @@ class DataService {
   ): Promise<SubmissionRecord> {
     const now = new Date();
     const isLate = now > new Date(dueDate);
+    const resolvedSet = getStudentSetNumber({ setNumber, studentEmail, studentId, studentName });
 
     const submission: SubmissionRecord = {
       id: `sub-${Date.now()}`,
@@ -476,7 +526,7 @@ class DataService {
       studentId,
       studentName,
       studentEmail,
-      setNumber,
+      setNumber: resolvedSet,
       submittedAt: now.toISOString(),
       status: isLate ? 'Late' : 'Submitted',
       fileName,
@@ -505,10 +555,19 @@ class DataService {
           await deleteDoc(doc(db, 'submissions', d.id));
         }
       }
-      await setDoc(doc(db, 'submissions', submission.id), submission);
+      await setDoc(doc(db, 'submissions', submission.id), sanitizeForFirestore(submission));
     } catch (err) {
       console.warn('Firestore submitWork sync error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'assignment_submitted',
+      title: 'Tugasan Pelajar Dihantar',
+      message: `${studentName} (${studentEmail}) telah menghantar tugasan: ${fileName}.`,
+      linkTab: 'timetable',
+      senderName: studentName,
+    });
 
     return submission;
   }
@@ -684,9 +743,20 @@ class DataService {
     saveLocal(KEYS.GRADES, updated);
 
     try {
-      await setDoc(doc(db, 'grades', grade.id), grade);
+      await setDoc(doc(db, 'grades', grade.id), sanitizeForFirestore(grade));
     } catch (err) {
       console.warn('Firestore updateGrade sync error:', err);
+    }
+
+    if (grade.isPublished) {
+      this.addNotification({
+        recipientEmail: grade.studentEmail,
+        type: 'grade_published',
+        title: 'Keputusan Gred Akademik Diterbitkan',
+        message: `Markah dan gred untuk kursus ${grade.courseName} (${grade.courseCode}) telah dikemas kini oleh ${grade.updatedBy}.`,
+        linkTab: 'gpa',
+        senderName: grade.updatedBy,
+      });
     }
   }
 
@@ -806,9 +876,20 @@ class DataService {
     saveLocal(KEYS.KOKO, updated);
 
     try {
-      await setDoc(doc(db, 'kokoRecords', record.id), record);
+      await setDoc(doc(db, 'kokoRecords', record.id), sanitizeForFirestore(record));
     } catch (err) {
       console.warn('Firestore saveStudentKoko sync error:', err);
+    }
+
+    if (record.isPublished) {
+      this.addNotification({
+        recipientEmail: record.studentEmail,
+        type: 'koko_reviewed',
+        title: 'Markah Kokurikulum Diterbitkan',
+        message: `Markah Kokurikulum UKM anda (Jumlah: ${record.totalKoko10 ?? record.totalScore}%) telah dikemas kini oleh ${record.updatedBy}.`,
+        linkTab: 'koko',
+        senderName: record.updatedBy,
+      });
     }
   }
 
@@ -822,10 +903,15 @@ class DataService {
 
   // --- STUDENT KOKO SUBMISSIONS (Workflow: Student Submit -> Lecturer Review & Award -> Student Receive) ---
   public subscribeKokoSubmissions(callback: (items: KokoSubmissionItem[]) => void): () => void {
-    const localData = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
+    const localData = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []).map((sub) => ({
+      ...sub,
+      setNumber: getStudentSetNumber(sub),
+    }));
     callback(localData);
 
-    const unsubSync = registerSyncListener<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, callback);
+    const unsubSync = registerSyncListener<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, (data) => {
+      callback((data || []).map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) })));
+    });
 
     try {
       const q = query(collection(db, 'kokoSubmissions'));
@@ -834,7 +920,12 @@ class DataService {
         (snapshot) => {
           const items: KokoSubmissionItem[] = [];
           snapshot.forEach((docSnap) => {
-            items.push({ id: docSnap.id, ...(docSnap.data() as any) });
+            const data = docSnap.data() as any;
+            items.push({
+              id: docSnap.id,
+              ...data,
+              setNumber: getStudentSetNumber(data),
+            });
           });
           items.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
           saveLocal(KEYS.KOKO_SUBMISSIONS, items);
@@ -856,8 +947,16 @@ class DataService {
   public async submitKokoActivity(
     submission: Omit<KokoSubmissionItem, 'id' | 'status' | 'submittedAt'>
   ): Promise<KokoSubmissionItem> {
+    const resolvedSet = getStudentSetNumber({
+      setNumber: submission.setNumber,
+      matricNumber: submission.matricNumber,
+      studentEmail: submission.studentEmail,
+      studentName: submission.studentName,
+    });
+
     const newItem: KokoSubmissionItem = {
       ...submission,
+      setNumber: resolvedSet,
       id: `koko-sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       status: 'pending',
       submittedAt: new Date().toISOString(),
@@ -868,10 +967,20 @@ class DataService {
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
 
     try {
-      await setDoc(doc(db, 'kokoSubmissions', newItem.id), newItem);
+      await setDoc(doc(db, 'kokoSubmissions', newItem.id), sanitizeForFirestore(newItem));
     } catch (err) {
       console.warn('Firestore submitKokoActivity error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'koko_submitted',
+      title: 'Permohonan Aktiviti KOKO Baharu',
+      message: `${submission.studentName} (${submission.studentEmail}) telah menghantar permohonan pengiktirafan aktiviti "${submission.activityName}".`,
+      linkTab: 'koko',
+      senderName: submission.studentName,
+    });
+
     return newItem;
   }
 
@@ -901,10 +1010,19 @@ class DataService {
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
 
     try {
-      await setDoc(doc(db, 'kokoSubmissions', submissionId), updatedItem);
+      await setDoc(doc(db, 'kokoSubmissions', submissionId), sanitizeForFirestore(updatedItem));
     } catch (err) {
       console.warn('Firestore reviewKokoSubmission error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: target.studentEmail,
+      type: 'koko_reviewed',
+      title: `Permohonan KOKO ${status === 'approved' ? 'Diluluskan' : 'Ditolak'}`,
+      message: `Permohonan aktiviti "${target.activityName}" anda telah ${status === 'approved' ? `diluluskan (Markah: +${awardedScore})` : 'ditolak'} oleh ${reviewerName}.`,
+      linkTab: 'koko',
+      senderName: reviewerName,
+    });
 
     // Automatically recalculate student's published koko marks when approved
     if (status === 'approved') {
@@ -1050,31 +1168,56 @@ class DataService {
 
   // --- FORUM POSTS ---
   public subscribeForumPosts(callback: (posts: ForumPost[]) => void): () => void {
-    const localData = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS);
+    const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_post_ids', []));
+    const localData = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS).filter(
+      (p) => !deletedIds.has(p.id)
+    );
     callback(localData);
 
-    const unsubSync = registerSyncListener<ForumPost[]>(KEYS.FORUM, callback);
+    const unsubSync = registerSyncListener<ForumPost[]>(KEYS.FORUM, (data) => {
+      const currentDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_post_ids', []));
+      callback((data || []).filter((p) => !currentDeleted.has(p.id)));
+    });
 
     try {
       const q = query(collection(db, 'forumPosts'));
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const items: ForumPost[] = [];
+          const currentDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_post_ids', []));
+          const remoteItems: ForumPost[] = [];
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as any;
-            const comments = Array.isArray(data.comments) ? data.comments : Array.isArray(data.replies) ? data.replies : [];
-            items.push({
-              id: docSnap.id,
-              ...data,
-              comments,
-              replies: comments,
-            });
+            if (!currentDeleted.has(docSnap.id)) {
+              const data = docSnap.data() as any;
+              const comments = Array.isArray(data.comments)
+                ? data.comments
+                : Array.isArray(data.replies)
+                ? data.replies
+                : [];
+              remoteItems.push({
+                id: docSnap.id,
+                ...data,
+                comments,
+                replies: comments,
+              });
+            }
           });
-          if (items.length > 0) {
-            saveLocal(KEYS.FORUM, items);
-            callback(items);
-          }
+
+          // Combine remote Firestore items with current local items so no thread is lost
+          const currentLocal = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS);
+          const postsMap = new Map<string, ForumPost>();
+          remoteItems.forEach((p) => postsMap.set(p.id, p));
+          currentLocal.forEach((p) => {
+            if (!currentDeleted.has(p.id) && !postsMap.has(p.id)) {
+              postsMap.set(p.id, p);
+            }
+          });
+
+          const merged = Array.from(postsMap.values());
+          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+          saveLocal(KEYS.FORUM, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore forum listener fallback:', error.message);
@@ -1107,10 +1250,19 @@ class DataService {
     saveLocal(KEYS.FORUM, updated);
 
     try {
-      await setDoc(doc(db, 'forumPosts', newPost.id), newPost);
+      await setDoc(doc(db, 'forumPosts', newPost.id), sanitizeForFirestore(newPost));
     } catch (err) {
       console.warn('Firestore addForumPost sync error:', err);
     }
+
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'community_reply',
+      title: 'Topik Perbincangan Komuniti Baharu',
+      message: `${newPost.authorName} memulakan perbincangan baharu: "${newPost.title}".`,
+      linkTab: 'community',
+      senderName: newPost.authorName,
+    });
 
     return newPost;
   }
@@ -1159,7 +1311,15 @@ class DataService {
     try {
       const target = updated.find((p) => p.id === postId);
       if (target) {
-        await setDoc(doc(db, 'forumPosts', postId), target);
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
+        this.addNotification({
+          recipientEmail: target.authorEmail,
+          type: 'community_reply',
+          title: 'Balasan Baharu di Perbincangan Anda',
+          message: `${comment.authorName} telah membalas topik anda "${target.title}": "${comment.content.slice(0, 50)}..."`,
+          linkTab: 'community',
+          senderName: comment.authorName,
+        });
       }
     } catch (err) {
       console.warn('Firestore addForumComment sync error:', err);
@@ -1189,7 +1349,7 @@ class DataService {
     try {
       const target = updated.find((p) => p.id === postId);
       if (target) {
-        await setDoc(doc(db, 'forumPosts', postId), target);
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
       }
     } catch (err) {
       console.warn('Firestore updateForumComment error:', err);
@@ -1210,7 +1370,7 @@ class DataService {
     try {
       const target = updated.find((p) => p.id === postId);
       if (target) {
-        await setDoc(doc(db, 'forumPosts', postId), target);
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
       }
     } catch (err) {
       console.warn('Firestore deleteForumComment error:', err);
@@ -1263,10 +1423,82 @@ class DataService {
     try {
       const target = updated.find((p) => p.id === postId);
       if (target) {
-        await setDoc(doc(db, 'forumPosts', postId), target);
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
+        if (target.authorEmail.toLowerCase() !== user.email.toLowerCase()) {
+          this.addNotification({
+            recipientEmail: target.authorEmail,
+            type: 'community_reaction',
+            title: 'Reaksi Emoji Baharu',
+            message: `${user.name} memberikan reaksi ${emoji} pada perbincangan anda "${target.title}".`,
+            linkTab: 'community',
+            senderName: user.name,
+          });
+        }
       }
     } catch (err) {
       console.warn('Firestore togglePostReaction error:', err);
+    }
+  }
+
+  public async toggleCommentReaction(
+    postId: string,
+    commentId: string,
+    emoji: string,
+    user: { name: string; email: string }
+  ): Promise<void> {
+    const current = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS);
+    let targetCommentAuthorEmail = '';
+
+    const updated = current.map((p) => {
+      if (p.id === postId) {
+        const comments = (p.comments || p.replies || []).map((c) => {
+          if (c.id === commentId) {
+            targetCommentAuthorEmail = c.authorEmail;
+            const reactions: ForumReaction[] = c.reactions ? [...c.reactions] : [];
+            const existingIdx = reactions.findIndex((r) => r.emoji === emoji);
+
+            if (existingIdx >= 0) {
+              const userIdx = reactions[existingIdx].users.findIndex(
+                (u) => u.email.toLowerCase() === user.email.toLowerCase()
+              );
+              if (userIdx >= 0) {
+                reactions[existingIdx].users.splice(userIdx, 1);
+                if (reactions[existingIdx].users.length === 0) {
+                  reactions.splice(existingIdx, 1);
+                }
+              } else {
+                reactions[existingIdx].users.push(user);
+              }
+            } else {
+              reactions.push({ emoji, users: [user] });
+            }
+            return { ...c, reactions };
+          }
+          return c;
+        });
+        return { ...p, comments, replies: comments };
+      }
+      return p;
+    });
+
+    saveLocal(KEYS.FORUM, updated);
+    try {
+      const target = updated.find((p) => p.id === postId);
+      if (target) {
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
+        if (targetCommentAuthorEmail && targetCommentAuthorEmail.toLowerCase() !== user.email.toLowerCase()) {
+          this.addNotification({
+            recipientEmail: targetCommentAuthorEmail,
+            type: 'community_reaction',
+            title: 'Reaksi Emoji pada Komen Anda',
+            message: `${user.name} memberikan reaksi ${emoji} pada balasan anda di topik "${target.title}".`,
+            linkTab: 'community',
+            senderName: user.name,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore toggleCommentReaction error:', err);
     }
   }
 
@@ -1282,7 +1514,7 @@ class DataService {
     try {
       const target = updated.find((p) => p.id === postId);
       if (target) {
-        await setDoc(doc(db, 'forumPosts', postId), target);
+        await setDoc(doc(db, 'forumPosts', postId), sanitizeForFirestore(target));
       }
     } catch (err) {
       console.warn('Firestore updatePost error:', err);
@@ -1290,8 +1522,12 @@ class DataService {
   }
 
   public async deletePost(postId: string): Promise<void> {
+    const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_post_ids', []));
+    deletedIds.add(postId);
+    saveLocal('pintar_deleted_post_ids', Array.from(deletedIds));
+
     const current = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS);
-    const updated = current.filter((p) => p.id !== postId);
+    const updated = current.filter((p) => p.id !== postId && !deletedIds.has(p.id));
     saveLocal(KEYS.FORUM, updated);
     try {
       await deleteDoc(doc(db, 'forumPosts', postId));
@@ -1447,6 +1683,15 @@ class DataService {
       console.warn('Firestore addBroadcast sync error:', err);
     }
 
+    this.addNotification({
+      recipientEmail: 'all',
+      type: 'broadcast',
+      title: `Pengumuman Siren: ${newItem.title}`,
+      message: `${newItem.senderName}: ${newItem.message}`,
+      linkTab: 'dashboard',
+      senderName: newItem.senderName,
+    });
+
     return newItem;
   }
 
@@ -1464,6 +1709,167 @@ class DataService {
 
   public async cancelBroadcast(broadcastId: string): Promise<void> {
     return this.deleteBroadcast(broadcastId);
+  }
+
+  // --- REAL-TIME IN-APP & EMAIL NOTIFICATIONS ---
+  public subscribeNotifications(
+    userEmail: string,
+    callback: (notifications: AppNotification[]) => void
+  ): () => void {
+    const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+    const rawLocal = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const filterUserNotifs = (list: AppNotification[]) =>
+      (list || []).filter(
+        (n) =>
+          !deletedIds.has(n.id) &&
+          (!n.recipientEmail ||
+            n.recipientEmail === 'all' ||
+            n.recipientEmail.toLowerCase() === (userEmail || '').toLowerCase())
+      );
+
+    callback(filterUserNotifs(rawLocal));
+
+    const unsubSync = registerSyncListener<AppNotification[]>(KEYS.NOTIFICATIONS, (data) => {
+      const activeDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+      const filtered = (data || []).filter((n) => !activeDeleted.has(n.id));
+      callback(filterUserNotifs(filtered));
+    });
+
+    try {
+      const q = query(collection(db, 'notifications'));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const activeDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+          const remoteItems: AppNotification[] = [];
+          snapshot.forEach((docSnap) => {
+            if (!activeDeleted.has(docSnap.id)) {
+              remoteItems.push({ id: docSnap.id, ...(docSnap.data() as any) });
+            }
+          });
+
+          const currentLocal = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+          const map = new Map<string, AppNotification>();
+          remoteItems.forEach((item) => map.set(item.id, item));
+          currentLocal.forEach((item) => {
+            if (!map.has(item.id) && !activeDeleted.has(item.id)) {
+              map.set(item.id, item);
+            }
+          });
+
+          const merged = Array.from(map.values()).filter((n) => !activeDeleted.has(n.id));
+          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+          saveLocal(KEYS.NOTIFICATIONS, merged);
+          callback(filterUserNotifs(merged));
+        },
+        (error) => {
+          console.warn('Firestore notifications listener fallback:', error.message);
+        }
+      );
+      return () => {
+        unsubSync();
+        unsubscribe();
+      };
+    } catch {
+      return unsubSync;
+    }
+  }
+
+  public async addNotification(
+    notif: Omit<AppNotification, 'id' | 'createdAt' | 'isRead'>
+  ): Promise<AppNotification> {
+    const newNotif: AppNotification = {
+      ...notif,
+      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    };
+
+    const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const updated = [newNotif, ...current];
+    saveLocal(KEYS.NOTIFICATIONS, updated);
+
+    try {
+      await setDoc(doc(db, 'notifications', newNotif.id), sanitizeForFirestore(newNotif));
+    } catch (err) {
+      console.warn('Firestore addNotification sync error:', err);
+    }
+
+    return newNotif;
+  }
+
+  public async markNotificationRead(id: string): Promise<void> {
+    const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const updated = current.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+    saveLocal(KEYS.NOTIFICATIONS, updated);
+
+    try {
+      const target = updated.find((n) => n.id === id);
+      if (target) {
+        await setDoc(doc(db, 'notifications', id), sanitizeForFirestore(target));
+      }
+    } catch (err) {
+      console.warn('Firestore markNotificationRead error:', err);
+    }
+  }
+
+  public async markAllNotificationsRead(userEmail: string): Promise<void> {
+    const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const updated = current.map((n) => {
+      if (
+        !n.recipientEmail ||
+        n.recipientEmail === 'all' ||
+        n.recipientEmail.toLowerCase() === (userEmail || '').toLowerCase()
+      ) {
+        return { ...n, isRead: true };
+      }
+      return n;
+    });
+    saveLocal(KEYS.NOTIFICATIONS, updated);
+  }
+
+  public async deleteNotification(id: string): Promise<void> {
+    const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+    deletedIds.add(id);
+    saveLocal('pintar_deleted_notif_ids', Array.from(deletedIds));
+
+    const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const updated = current.filter((n) => n.id !== id);
+    saveLocal(KEYS.NOTIFICATIONS, updated);
+
+    try {
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (err) {
+      console.warn('Firestore deleteNotification error:', err);
+    }
+  }
+
+  public async clearAllNotifications(userEmail: string): Promise<void> {
+    const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    const userNotifs = current.filter(
+      (n) =>
+        !n.recipientEmail ||
+        n.recipientEmail === 'all' ||
+        n.recipientEmail.toLowerCase() === (userEmail || '').toLowerCase()
+    );
+
+    const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+    userNotifs.forEach((n) => deletedIds.add(n.id));
+    saveLocal('pintar_deleted_notif_ids', Array.from(deletedIds));
+
+    const updated = current.filter((n) => !deletedIds.has(n.id));
+    saveLocal(KEYS.NOTIFICATIONS, updated);
+
+    for (const notif of userNotifs) {
+      try {
+        await deleteDoc(doc(db, 'notifications', notif.id));
+      } catch {}
+    }
+  }
+
+  public subscribeToNotifications(userEmail: string, cb: (n: AppNotification[]) => void) {
+    return this.subscribeNotifications(userEmail, cb);
   }
 }
 

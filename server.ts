@@ -90,22 +90,22 @@ ${formattedContext ? `Current User Context: ${formattedContext}` : ""}`;
     let replyText = "";
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
-      });
-      replyText = response.text || "";
-    } catch (modelErr: any) {
-      console.warn("gemini-3.1-flash-lite error, attempting gemini-3.8-flash:", modelErr?.message || modelErr);
-      const fallbackResponse = await ai.models.generateContent({
         model: "gemini-3.8-flash",
         contents,
         config: {
           systemInstruction,
-          temperature: 0.7,
+          temperature: 0.2,
+        },
+      });
+      replyText = response.text || "";
+    } catch (modelErr: any) {
+      console.warn("gemini-3.8-flash primary error, attempting fallback:", modelErr?.message || modelErr);
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite",
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.2,
         },
       });
       replyText = fallbackResponse.text || "";

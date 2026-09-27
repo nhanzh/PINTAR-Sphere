@@ -13,6 +13,7 @@ import { formatBroadcastDateTime, isWithin24Hours } from '../utils/dateUtils.ts'
 import { calculateOfficialPngs } from '../utils/gradeCalculation.ts';
 import { getLecturerForSetAndSubject } from '../utils/lecturerSetSync.ts';
 import { getSubjectDisplayName } from '../utils/subjectNames.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import { SUBJECTS } from '../data/mockData.ts';
 import {
   Sparkles,
@@ -57,7 +58,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
   onOpenAiWithPrompt,
 }) => {
   const { lang, dict } = useLanguage();
-  const studentSet = user.setNumber || 3;
+  const studentSet = getStudentSetNumber(user);
 
   // Filter schedules for this student's set
   const mySchedules = schedules.filter(

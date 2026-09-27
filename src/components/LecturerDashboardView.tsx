@@ -46,6 +46,7 @@ import { dataService } from '../services/dataService.ts';
 import { MaterialUploadModal } from './MaterialUploadModal.tsx';
 import { calculateSuggestedKokoScore } from '../utils/kokoScoring.ts';
 import { openOrDownloadSubmissionFile } from '../utils/fileUtils.ts';
+import { getStudentSetNumber, isKokoCoordinator } from '../utils/studentUtils.ts';
 
 interface LecturerDashboardViewProps {
   user: UserProfile;
@@ -93,6 +94,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
 
   const subjectName = user.taughtSubjectName || 'Chemistry I';
   const subjectCode = user.taughtSubjectCode || 'PNAP0133';
+  const isDrMona = isKokoCoordinator(user.email, user.name);
 
   // Real-time subscribe to Koko Submissions
   useEffect(() => {
@@ -321,8 +323,9 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Columns: Deadlines Tracking & Submissions Feed */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Real-Time Student Co-Curricular Verification Cards (Lecturer Review) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-300/80 dark:border-amber-800/80 p-5 shadow-xs transition-colors space-y-4">
+          {/* Real-Time Student Co-Curricular Verification Cards (Lecturer Review - Only Dr Mona & Penyelaras ASASIpintar) */}
+          {isDrMona && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-300/80 dark:border-amber-800/80 p-5 shadow-xs transition-colors space-y-4">
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
@@ -401,7 +404,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                         <div className="flex items-center gap-2">
                           <span className="font-extrabold text-xs text-slate-900 dark:text-white">{sub.studentName}</span>
                           <span className="font-mono text-[11px] text-slate-500">({sub.matricNumber})</span>
-                          <span className="px-2 py-0.2 rounded bg-blue-100 text-blue-900 text-[10px] font-bold">Set {sub.setNumber}</span>
+                          <span className="px-2 py-0.2 rounded bg-blue-100 text-blue-900 text-[10px] font-bold">Set {getStudentSetNumber(sub)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-200 text-amber-950">{sub.categoryName}</span>
@@ -479,6 +482,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
               </div>
             )}
           </div>
+          )}
 
           {/* Course Learning Materials & Files Manager (Lecturer Dashboard) */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-colors">
@@ -727,7 +731,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                               {sub.studentEmail}
                             </div>
                           </td>
-                          <td className="py-2.5 text-slate-700 dark:text-slate-300 font-semibold">Set {sub.setNumber}</td>
+                          <td className="py-2.5 text-slate-700 dark:text-slate-300 font-semibold">Set {getStudentSetNumber(sub)}</td>
                           <td className="py-2.5">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${

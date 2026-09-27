@@ -16,6 +16,7 @@ import {
   KokoPositionRole,
   calculateSuggestedKokoScore,
 } from '../utils/kokoScoring.ts';
+import { getStudentSetNumber } from '../utils/studentUtils.ts';
 import {
   Award,
   Shield,
@@ -331,7 +332,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
 
     setStatusNotice({
       type: 'success',
-      message: `Aktiviti "${sub.activityName}" bagi ${sub.studentName} (Set ${sub.setNumber}) berjaya diluluskan (+${awardedScore.toFixed(3)} markah disegerak ke profil pelajar)!`,
+      message: `Aktiviti "${sub.activityName}" bagi ${sub.studentName} (Set ${getStudentSetNumber(sub)}) berjaya diluluskan (+${awardedScore.toFixed(3)} markah disegerak ke profil pelajar)!`,
     });
     setTimeout(() => setStatusNotice(null), 5000);
     if (onRefreshData) onRefreshData();
@@ -491,7 +492,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {isStudent
-                ? `Pelajar: ${user.name} (Set ${user.setNumber})`
+                ? `Pelajar: ${user.name} (Set ${getStudentSetNumber(user)})`
                 : 'Portal Pensyarah Penilai Kokurikulum'}
             </span>
           </div>
@@ -966,7 +967,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                   )}
                   <button
                     type="button"
-                    onClick={() => handleDeleteStudentSubmission(sub)}
+                    onClick={() => setSubToDelete(sub)}
                     className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
                     title="Padam Permohonan Ini"
                   >
@@ -1160,7 +1161,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                         </span>
                         <span className="font-mono text-xs text-slate-500">({sub.matricNumber})</span>
                         <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
-                          Set {sub.setNumber}
+                          Set {getStudentSetNumber(sub)}
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">
@@ -1301,7 +1302,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     <span className="font-bold text-xs text-slate-900 dark:text-white">{sub.studentName}</span>
                     <span className="text-[10px] text-slate-400 font-mono">({sub.matricNumber})</span>
                     <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 rounded font-bold">
-                      Set {sub.setNumber}
+                      Set {getStudentSetNumber(sub)}
                     </span>
                   </div>
                   <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1">
@@ -1391,7 +1392,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                       </td>
                       <td className="p-3 text-center font-bold">
                         <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                          Set {st.setNumber}
+                          Set {getStudentSetNumber(st)}
                         </span>
                       </td>
                       <td className="p-3 text-center font-bold">
@@ -1467,7 +1468,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700">
                 <div className="font-bold text-slate-900 dark:text-white">{rejectingSub.activityName}</div>
                 <div className="text-[11px] text-slate-500">
-                  Pelajar: {rejectingSub.studentName} ({rejectingSub.matricNumber}) • Set {rejectingSub.setNumber}
+                  Pelajar: {rejectingSub.studentName} ({rejectingSub.matricNumber}) • Set {getStudentSetNumber(rejectingSub)}
                 </div>
               </div>
 
@@ -1599,7 +1600,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     Tambah &amp; Hantar Aktiviti Kokurikulum
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Pelajar: {user.name} (Set {user.setNumber})
+                    Pelajar: {user.name} (Set {getStudentSetNumber(user)})
                   </p>
                 </div>
               </div>
