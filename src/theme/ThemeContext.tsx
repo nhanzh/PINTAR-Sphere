@@ -31,18 +31,28 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const isDark = theme === 'dark';
 
+  const applyThemeToDOM = (t: Theme) => {
+    if (typeof document === 'undefined') return;
+    const isD = t === 'dark';
+    const root = document.documentElement;
+    const body = document.body;
+
+    if (isD) {
+      root.classList.add('dark');
+      if (body) body.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      if (body) body.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
+    }
+  };
+
   useEffect(() => {
     try {
-      const root = document.documentElement;
-      if (isDark) {
-        root.classList.add('dark');
-        root.setAttribute('data-theme', 'dark');
-        root.style.colorScheme = 'dark';
-      } else {
-        root.classList.remove('dark');
-        root.setAttribute('data-theme', 'light');
-        root.style.colorScheme = 'light';
-      }
+      applyThemeToDOM(theme);
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // ignore
@@ -50,10 +60,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [theme, isDark]);
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemeState((prev) => {
+      const next: Theme = prev === 'dark' ? 'light' : 'dark';
+      applyThemeToDOM(next);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch {}
+      return next;
+    });
   };
 
   const setTheme = (newTheme: Theme) => {
+    applyThemeToDOM(newTheme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    } catch {}
     setThemeState(newTheme);
   };
 

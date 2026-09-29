@@ -111,7 +111,22 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
       a.download = res.title || 'bahan-pembelajaran';
       a.click();
     } else {
-      alert(`Membuka bahan pembelajaran: "${res.title}"`);
+      const blob = new Blob([
+        `Pusat PERMATApintar Negara UKM - Program ASASIpintar\n\n` +
+        `Subjek: ${res.courseCode} - ${res.title}\n` +
+        `Kategori: ${res.category}\n` +
+        `Disediakan oleh: ${res.uploadedBy}\n` +
+        `Tarikh Muat Naik: ${res.uploadedDate || (res as any).uploadedAt || 'N/A'}\n\n` +
+        `Penerangan:\n${res.description}\n`
+      ], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${res.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   };
 

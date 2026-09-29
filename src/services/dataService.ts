@@ -562,10 +562,10 @@ class DataService {
 
     const deadlinesList = getLocal<DeadlineItem[]>(KEYS.DEADLINES, []);
     const matchingDeadline = deadlinesList.find((d) => d.id === deadlineId);
-    const lecturerEmail = matchingDeadline ? matchingDeadline.lecturerEmail : 'all';
 
+    // Notify all lecturers so all faculty can receive and track the submission
     this.addNotification({
-      recipientEmail: lecturerEmail,
+      recipientEmail: 'all',
       type: 'assignment_submitted',
       title: 'Tugasan Pelajar Dihantar',
       message: `${studentName} (Set ${resolvedSet}) telah menghantar tugasan untuk "${matchingDeadline ? matchingDeadline.title : 'Tugasan'}": ${fileName}.`,

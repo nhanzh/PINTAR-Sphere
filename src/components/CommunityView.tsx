@@ -87,7 +87,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
 
   const handleDownloadFile = (url?: string, fileName?: string) => {
     if (!url) {
-      alert('Maaf, fail ini tidak mempunyai URL muat turun yang sah.');
+      console.warn('Fail ini tidak mempunyai URL muat turun yang sah.');
       return;
     }
 

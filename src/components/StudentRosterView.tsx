@@ -37,6 +37,29 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({ user }) =>
     return true;
   });
 
+  const handleExportCsv = () => {
+    const headers = ['Bil', 'No Matrik', 'Nama Pelajar', 'Emel', 'Set', 'CGPA', 'Markah Koko', 'Gred Koko', 'Status'];
+    const rows = filteredStudents.map((st, idx) => [
+      idx + 1,
+      `"${st.matricNumber}"`,
+      `"${st.name.replace(/"/g, '""')}"`,
+      `"${st.email}"`,
+      st.setNumber,
+      st.cgpa || '',
+      st.kokoMarks || '',
+      st.kokoGrade || '',
+      `"${st.status || 'Active'}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `senarai_pelajar_asasi_pintar_set_${selectedSet}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -59,7 +82,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({ user }) =>
         </div>
 
         <button
-          onClick={() => alert('Exporting full 300 student cohort roster (CSV format)...')}
+          onClick={handleExportCsv}
           className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs shrink-0 cursor-pointer"
         >
           <Download className="w-4 h-4 text-emerald-400 dark:text-white" />

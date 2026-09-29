@@ -147,9 +147,8 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
   const [selectedTargetSets, setSelectedTargetSets] = useState<string[]>(['Set 3']);
   const [isCreatingDeadline, setIsCreatingDeadline] = useState(false);
 
-  // Filter deadlines for student / lecturer
+  // Filter deadlines for student / lecturer - all lecturers receive all student submissions and assignments
   const filteredDeadlines = useMemo(() => {
-    const isAdminHub = isProgramCoordinator(user.email, user.name);
     return deadlines.filter((d) => {
       if (isStudent) {
         return (
@@ -158,22 +157,13 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
           d.targetSets.some((s) => s.toLowerCase().includes(String(studentSet)))
         );
       }
-      // If lecturer and not admin hub, only show deadlines they created
-      if (isAdminHub) return true;
-      return d.lecturerEmail === user.email;
+      // For lecturers: all lecturers receive and view all deadlines and submissions
+      return true;
     });
-  }, [deadlines, isStudent, studentSet, user.email, user.name]);
+  }, [deadlines, isStudent, studentSet]);
 
-  // Filter submissions so lecturers only see submissions for their own deadlines
-  const filteredSubmissions = useMemo(() => {
-    if (isStudent) return submissions;
-    const isAdminHub = isProgramCoordinator(user.email, user.name);
-    if (isAdminHub) return submissions;
-    const myDeadlineIds = new Set(
-      deadlines.filter((d) => d.lecturerEmail === user.email).map((d) => d.id)
-    );
-    return submissions.filter((s) => myDeadlineIds.has(s.deadlineId));
-  }, [submissions, deadlines, isStudent, user.email, user.name]);
+  // All lecturers can view student submissions
+  const filteredSubmissions = submissions;
 
   // Filter student's class schedules (Set 3 or all)
   const studentSchedules = useMemo(() => {
@@ -267,13 +257,11 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
 
   // Student Delete Submission (To Re-upload & Clear Marked As Done status)
   const handleDeleteSubmission = async (submissionId: string, deadlineId?: string) => {
-    if (window.confirm('Adakah anda pasti mahu memadam fail tugasan ini untuk memuat naik semula? Status Selesai (Marked as Done) akan dibatalkan.')) {
-      await dataService.deleteSubmission(submissionId, deadlineId || selectedDeadline?.id, user.email);
-      setSubmissionFileName('');
-      setSubmissionNote('');
-      setSubmissionFileObj(null);
-      if (onRefreshData) onRefreshData();
-    }
+    await dataService.deleteSubmission(submissionId, deadlineId || selectedDeadline?.id, user.email);
+    setSubmissionFileName('');
+    setSubmissionNote('');
+    setSubmissionFileObj(null);
+    if (onRefreshData) onRefreshData();
   };
 
   // Lecturer Delete Entire Deadline

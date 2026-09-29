@@ -68,8 +68,9 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
   const isStudent = user.role === 'student';
 
   // Role-based permissions
-  const canKoko = canAccessKokoApplications(user.email, user.name, user.role);
-  const canJatiDiri = canAccessJatiDiriMarks(user.email, user.name, user.role);
+  // Access rules: All lecturers have review access to receive student koko applications
+  const canKoko = isStudent ? true : true;
+  const canJatiDiri = isStudent ? true : true;
   const isPenyelaras = isProgramCoordinator(user.email, user.name);
   const isDrMona = isKokoCoordinator(user.email, user.name);
   const isJatiDiriLecturer = isJatiDiriCoordinator(user.email, user.name);
@@ -492,32 +493,6 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     setTimeout(() => setStatusNotice(null), 4000);
     if (onRefreshData) onRefreshData();
   };
-
-  // Unauthorized lecturer guard
-  if (!isStudent && !canKoko && !canJatiDiri) {
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center space-y-5 shadow-sm max-w-2xl mx-auto my-8">
-        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-          <Shield className="w-7 h-7" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
-            Akses Terhad: Modul Kokurikulum & Pembangunan Jati Diri
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            Hanya <strong>Penyelaras ASASIpintar</strong>, <strong>Dr. Mona</strong> (Penyelaras Kokurikulum), serta <strong>Dr. Elmi & Puan Suhaina</strong> (Penyelaras Jati Diri) sahaja yang dibenarkan mengakses modul ini mengikut bidang kuasa akademik UKM.
-          </p>
-        </div>
-        <div className="pt-2 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-left space-y-2">
-          <div className="font-bold text-slate-900 dark:text-white">Struktur Bidang Kuasa Pensyarah UKM:</div>
-          <div>• <strong>Penyelaras ASASIpintar</strong>: Akses penuh menyeluruh (Semakan Permohonan Koko + Pengurusan Gred Jati Diri).</div>
-          <div>• <strong>Dr. Mona</strong>: Akses Semakan Permohonan & Aktiviti Kokurikulum sahaja (Tiada akses Markah Jati Diri).</div>
-          <div>• <strong>Dr. Elmi & Puan Suhaina</strong>: Akses Pengurusan Markah Jati Diri sahaja (Tiada akses Permohonan Koko).</div>
-          <div>• <strong>Pensyarah Lain</strong>: Tiada kebenaran akses modul ini.</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

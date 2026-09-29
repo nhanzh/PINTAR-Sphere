@@ -13,11 +13,17 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 }) => {
   const { theme, isDark, toggleTheme } = useTheme();
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleTheme();
+  };
+
   if (variant === 'pill') {
     return (
       <button
         type="button"
-        onClick={toggleTheme}
+        onClick={handleToggle}
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         title={isDark ? 'Tukar ke Mod Cerah (Light Mode)' : 'Tukar ke Mod Gelap (Dark Mode)'}
         className={`relative inline-flex h-8 w-15 items-center rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer ${
@@ -44,16 +50,16 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     return (
       <button
         type="button"
-        onClick={toggleTheme}
+        onClick={handleToggle}
         className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 ${className}`}
       >
         <div className="flex items-center gap-2">
           {isDark ? (
-            <Moon className="w-4 h-4 text-indigo-400" />
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <Sun className="w-4 h-4 text-amber-500" />
+            <Moon className="w-4 h-4 text-indigo-600" />
           )}
-          <span>{isDark ? 'Mod Gelap (Dark)' : 'Mod Cerah (Light)'}</span>
+          <span>{isDark ? 'Mod Gelap (Klik untuk Mod Cerah)' : 'Mod Cerah (Klik untuk Mod Gelap)'}</span>
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
           {isDark ? 'Dark' : 'Light'}
@@ -66,21 +72,21 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   return (
     <button
       type="button"
-      onClick={toggleTheme}
+      onClick={handleToggle}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Tukar ke Mod Cerah (Light Mode)' : 'Tukar ke Mod Gelap (Dark Mode)'}
-      className={`relative p-2 rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+      className={`relative p-2 rounded-xl border transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/40 shadow-xs active:scale-95 ${
         isDark
-          ? 'bg-slate-800/90 border-slate-700 text-amber-300 hover:bg-slate-750 hover:text-amber-200'
-          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-600'
+          ? 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:text-amber-200'
+          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-indigo-600'
       } ${className}`}
     >
       <span className="sr-only">Toggle theme</span>
       <div className="relative w-4 h-4 flex items-center justify-center">
         {isDark ? (
-          <Sun className="w-4 h-4 transform rotate-0 transition-transform duration-300 text-amber-400" />
+          <Sun className="w-4 h-4 text-amber-400" />
         ) : (
-          <Moon className="w-4 h-4 transform rotate-0 transition-transform duration-300 text-slate-600" />
+          <Moon className="w-4 h-4 text-indigo-600" />
         )}
       </div>
     </button>

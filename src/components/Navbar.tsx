@@ -1,12 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { UserProfile, ActiveTab, UserRole } from '../types.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES, Language } from '../i18n/translations.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
 import { getStudentSetNumber, isKokoCoordinator, canAccessJatiDiriMarks, canAccessKokoModule } from '../utils/studentUtils.ts';
-import { OFFICIAL_318_STUDENTS_ROSTER } from '../data/officialStudentRoster.ts';
-import { AUTHORIZED_LECTURERS } from '../data/authorizedLecturers.ts';
-import { authService } from '../services/authService.ts';
 import {
   BookOpen,
   Calendar,
@@ -25,10 +22,6 @@ import {
   Building2,
   GraduationCap,
   Shield,
-  FlaskConical,
-  Search,
-  Zap,
-  X,
   FileSpreadsheet,
 } from 'lucide-react';
 
@@ -64,30 +57,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const unreadNotifCount = notifications.filter((n) => !n.isRead).length;
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [isTestSwitcherOpen, setIsTestSwitcherOpen] = useState(false);
-  const [testSearch, setTestSearch] = useState('');
-  const [testSetFilter, setTestSetFilter] = useState<'all' | number>('all');
-  const [testSubjectFilter, setTestSubjectFilter] = useState<string>('all');
 
   const isStudent = user.role === 'student';
-
-  const filteredStudents = useMemo(() => {
-    return OFFICIAL_318_STUDENTS_ROSTER.filter((st) => {
-      const matchesSet = testSetFilter === 'all' || st.setNumber === Number(testSetFilter);
-      const q = testSearch.toLowerCase().trim();
-      const matchesQuery = !q || st.name.toLowerCase().includes(q) || st.matricNumber.toLowerCase().includes(q) || st.email.toLowerCase().includes(q);
-      return matchesSet && matchesQuery;
-    });
-  }, [testSetFilter, testSearch]);
-
-  const filteredLecturers = useMemo(() => {
-    return AUTHORIZED_LECTURERS.filter((lec) => {
-      const matchesSub = testSubjectFilter === 'all' || lec.subjectId === testSubjectFilter;
-      const q = testSearch.toLowerCase().trim();
-      const matchesQuery = !q || lec.name.toLowerCase().includes(q) || lec.email.toLowerCase().includes(q) || lec.subjectName.toLowerCase().includes(q);
-      return matchesSub && matchesQuery;
-    });
-  }, [testSubjectFilter, testSearch]);
 
   const currentLangObj =
     SUPPORTED_LANGUAGES.find((l) => l.code === lang) || SUPPORTED_LANGUAGES[0];
@@ -97,26 +68,34 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Top Banner Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Institution Branding */}
+          {/* Logo & Institution Branding: Dual Official Logos */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveTab('dashboard')}
               className="flex items-center gap-2.5 text-left group cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-md shadow-indigo-500/10 group-hover:scale-105 transition-transform overflow-hidden relative border border-slate-200 dark:border-slate-700 p-0.5">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 px-2 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 group-hover:scale-[1.02] transition-transform">
                 <img
-                  src="/logo.png"
-                  alt="PINTAR@Sphere Logo"
-                  className="w-full h-full object-contain rounded-lg"
+                  src="/logo_ukm.png"
+                  alt="Universiti Kebangsaan Malaysia"
+                  className="h-8 sm:h-9 w-auto object-contain rounded"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
+                <img
+                  src="/logo_asasipintar.png"
+                  alt="ASASIpintar UKM"
+                  className="h-7 sm:h-8 w-auto object-contain rounded"
+                  referrerPolicy="no-referrer"
                 />
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-extrabold text-black dark:text-white tracking-tight">
                     PINTAR<span className="text-red-600 dark:text-red-500 font-extrabold">@Sphere</span>
                   </span>
                   <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200/60 dark:border-red-800/60">
-                    ASASIpintar
+                    UKM
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
@@ -319,19 +298,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-                    {/* Quick Dummy Account Switcher Button (Testing Mode) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        setIsTestSwitcherOpen(true);
-                      }}
-                      className="w-full py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer border border-indigo-200 dark:border-indigo-800/60 mt-1"
-                    >
-                      <FlaskConical className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>{isStudent ? 'Tukar Pelajar Ujian (318 Pelajar)' : 'Tukar Pensyarah Ujian (25 Pensyarah)'}</span>
-                    </button>
-
                     {/* Dedicated Log Out Button */}
                     {onLogout && (
                       <button
@@ -353,206 +319,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </div>
-
-
-
-      {/* QUICK TEST SWITCHER MODAL (Strictly within current portal role) */}
-      {isTestSwitcherOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-                  isStudent ? 'bg-blue-100 dark:bg-blue-950 text-blue-600' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
-                }`}>
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    {isStudent
-                      ? 'Tukar Akaun Pelajar Ujian (318 Pelajar)'
-                      : 'Tukar Akaun Pensyarah Ujian (25 Pensyarah)'}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {isStudent
-                      ? 'Pilih mana-mana pelajar daripada Set 1 hingga 11 untuk menguji'
-                      : 'Pilih mana-mana pensyarah fakulti untuk menguji sistem'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsTestSwitcherOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Filter & Search */}
-            <div className="space-y-2.5">
-              {isStudent ? (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setTestSetFilter('all')}
-                    className={`px-3 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
-                      testSetFilter === 'all'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    Semua (318)
-                  </button>
-                  {Array.from({ length: 11 }, (_, i) => i + 1).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setTestSetFilter(s)}
-                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
-                        testSetFilter === s
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      Set {s}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-                  {[
-                    { id: 'all', label: 'Semua (25)' },
-                    { id: 'biology', label: 'Biologi' },
-                    { id: 'physics', label: 'Fizik' },
-                    { id: 'chemistry', label: 'Kimia' },
-                    { id: 'statistics', label: 'Statistik' },
-                    { id: 'logical_reasoning', label: 'Logical' },
-                    { id: 'general', label: 'Admin / Penyelaras' },
-                  ].map((sub) => (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      onClick={() => setTestSubjectFilter(sub.id)}
-                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
-                        testSubjectFilter === sub.id
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder={isStudent ? 'Cari nama atau no. matrik (cth: AP05710, Danish)...' : 'Cari nama pensyarah, subjek (cth: Mona, Ikhwan)...'}
-                  value={testSearch}
-                  onChange={(e) => setTestSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                />
-              </div>
-            </div>
-
-            {/* List */}
-            <div className="max-h-72 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-              {isStudent ? (
-                filteredStudents.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-400">Tiada pelajar dijumpai.</div>
-                ) : (
-                  filteredStudents.map((st) => (
-                    <div
-                      key={st.id}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 hover:border-blue-500/60 flex items-center justify-between gap-3 transition-all"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                            {st.name}
-                          </span>
-                          <span className="px-2 py-0.2 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-bold shrink-0">
-                            Set {st.setNumber}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
-                          {st.matricNumber} • {st.email}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const profile = authService.buildProfileForEmail(st.email, 'student');
-                          if (onSwitchUser) onSwitchUser(profile);
-                          setIsTestSwitcherOpen(false);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer shrink-0"
-                      >
-                        <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
-                        <span>Pilih</span>
-                      </button>
-                    </div>
-                  ))
-                )
-              ) : (
-                filteredLecturers.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-400">Tiada pensyarah dijumpai.</div>
-                ) : (
-                  filteredLecturers.map((lec) => {
-                    const isMona = isKokoCoordinator(lec.email, lec.name);
-                    return (
-                      <div
-                        key={lec.email}
-                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                          isMona
-                            ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700 hover:border-emerald-500/60'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                              {lec.name}
-                            </span>
-                            <span className="px-2 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold shrink-0">
-                              {lec.subjectName}
-                            </span>
-                            {isMona && (
-                              <span className="px-2 py-0.2 rounded bg-amber-200 dark:bg-amber-900 text-amber-950 dark:text-amber-200 text-[10px] font-bold shrink-0 flex items-center gap-1">
-                                <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                                <span>Penyelaras Koko</span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-                            {lec.email} • {lec.department}
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const profile = authService.buildProfileForEmail(lec.email, 'lecturer');
-                            if (onSwitchUser) onSwitchUser(profile);
-                            setIsTestSwitcherOpen(false);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer shrink-0"
-                        >
-                          <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
-                          <span>Pilih</span>
-                        </button>
-                      </div>
-                    );
-                  })
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Unified Top Navigation Tab Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2 pt-1 border-t border-slate-100 dark:border-slate-800">

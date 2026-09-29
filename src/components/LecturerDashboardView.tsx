@@ -133,11 +133,11 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   };
 
   const handleRejectKoko = async (sub: KokoSubmissionItem) => {
-    if (window.confirm(`Adakah anda pasti mahu menolak permohonan kokurikulum bagi ${sub.studentName}?`)) {
-      setIsReviewingKoko(sub.id);
-      await dataService.reviewKokoSubmission(sub.id, 'rejected', 0, user.name);
-      setIsReviewingKoko(null);
-    }
+    setIsReviewingKoko(sub.id);
+    await dataService.reviewKokoSubmission(sub.id, 'rejected', 0, user.name);
+    setIsReviewingKoko(null);
+    setKokoActionToast(`Permohonan "${sub.activityName}" bagi ${sub.studentName} telah ditolak.`);
+    setTimeout(() => setKokoActionToast(null), 5000);
   };
 
   // Filter resources uploaded by this lecturer or for their subject
@@ -164,24 +164,30 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       a.download = res.title || 'bahan-pembelajaran';
       a.click();
     } else {
-      alert(`Membuka bahan pembelajaran: "${res.title}"`);
+      const blob = new Blob([
+        `Pusat PERMATApintar Negara UKM - Program ASASIpintar\n\n` +
+        `Subjek: ${res.courseCode} - ${res.title}\n` +
+        `Kategori: ${res.category}\n` +
+        `Disediakan oleh: ${res.uploadedBy}\n` +
+        `Tarikh Muat Naik: ${res.uploadedDate || (res as any).uploadedAt || 'N/A'}\n\n` +
+        `Penerangan:\n${res.description}\n`
+      ], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${res.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   };
 
-  const isAdminHub = isProgramCoordinator(user.email, user.name);
+  // All lecturers receive and view all student deadlines and submissions
+  const myDeadlines = deadlines;
 
-  // Filter deadlines so other lecturers cannot see them, but Admin Hub can see all
-  const myDeadlines = deadlines.filter((d) => {
-    if (isAdminHub) return true;
-    return d.lecturerEmail === user.email;
-  });
-
-  // Filter submissions so only those for deadlines created by this lecturer (or all if Admin Hub) are shown
-  const filteredSubmissions = React.useMemo(() => {
-    if (isAdminHub) return submissions;
-    const myDeadlineIds = new Set(myDeadlines.map((d) => d.id));
-    return submissions.filter((s) => myDeadlineIds.has(s.deadlineId));
-  }, [submissions, myDeadlines, isAdminHub]);
+  // All lecturers receive and view all student submissions
+  const filteredSubmissions = submissions;
 
   // Submissions count
   const totalSubmissions = filteredSubmissions.length;
@@ -316,9 +322,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{dict.dispatchedToStudents}</div>
                   <button
                     onClick={async () => {
-                      if (window.confirm('Adakah anda pasti untuk membatalkan hebahan ini?')) {
-                        await dataService.cancelBroadcast(b.id);
-                      }
+                      await dataService.cancelBroadcast(b.id);
                     }}
                     className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-[10px] font-bold transition-colors cursor-pointer"
                     title="Batal Hebahan Ini"
