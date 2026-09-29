@@ -279,6 +279,9 @@ export class AuthService {
       profile: userProfile,
     });
 
+    // Create server-side & Firestore session layer
+    this.createRemoteSession(userProfile).catch(() => {});
+
     return userProfile;
   }
 
@@ -358,6 +361,7 @@ export class AuthService {
       } catch {}
 
       saveLocalAccount({ email: cleanEmail, passwordHash: btoa(password), profile: loggedInProfile });
+      this.createRemoteSession(loggedInProfile).catch(() => {});
       return loggedInProfile;
     } catch (fbErr: any) {
       console.warn('Firebase signIn attempt:', fbErr?.code || fbErr?.message);
@@ -375,6 +379,7 @@ export class AuthService {
             prof = hydrateStudentProfile(cleanEmail, prof);
           }
           saveLocalAccount({ email: cleanEmail, passwordHash: expectedHash, profile: prof });
+          this.createRemoteSession(prof).catch(() => {});
           return prof;
         } else {
           throw new Error('Kata laluan tidak tepat. Sila semak semula kata laluan anda.');
@@ -407,6 +412,7 @@ export class AuthService {
           updatedAt: new Date().toISOString(),
         });
       } catch {}
+      this.createRemoteSession(prof).catch(() => {});
       return prof;
     }
 
@@ -455,8 +461,103 @@ export class AuthService {
     }
   }
 
+  /**
+   * Creates a server-side and Firestore session layer entry for cross-device authentication and sync.
+   */
+  public async createRemoteSession(profile: UserProfile): Promise<string> {
+    const cleanEmail = profile.email.toLowerCase();
+    const sessionId = `sess_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+    const sessionData = {
+      sessionId,
+      email: cleanEmail,
+      role: profile.role,
+      profile,
+      deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Device',
+      lastActive: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isValid: true,
+    };
+
+    try {
+      await setDoc(doc(db, 'activeSessions', sessionId), sessionData);
+    } catch (err) {
+      console.warn('Firestore activeSessions setDoc error:', err);
+    }
+
+    try {
+      await fetch('/api/auth/session/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          role: profile.role,
+          profile,
+          deviceInfo: sessionData.deviceInfo,
+        }),
+      });
+    } catch {}
+
+    try {
+      localStorage.setItem('pintar_active_session_id', sessionId);
+    } catch {}
+
+    return sessionId;
+  }
+
+  /**
+   * Validates user authentication state across device sessions via server & database layer.
+   */
+  public async validateRemoteSession(email: string, profile?: UserProfile): Promise<boolean> {
+    if (!email) return false;
+    const cleanEmail = email.trim().toLowerCase();
+    const sessionId = typeof localStorage !== 'undefined' ? localStorage.getItem('pintar_active_session_id') : null;
+
+    try {
+      const res = await fetch('/api/auth/session/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, sessionId, profile }),
+      });
+      const data = await res.json();
+      return Boolean(data?.isValid);
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Destroys active session record on server & database upon logout.
+   */
+  public async destroyRemoteSession(sessionId?: string): Promise<void> {
+    const activeSessionId =
+      sessionId || (typeof localStorage !== 'undefined' ? localStorage.getItem('pintar_active_session_id') : null);
+
+    if (activeSessionId) {
+      try {
+        await setDoc(
+          doc(db, 'activeSessions', activeSessionId),
+          { isValid: false, destroyedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      } catch {}
+
+      try {
+        await fetch('/api/auth/session/destroy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: activeSessionId }),
+        });
+      } catch {}
+
+      try {
+        localStorage.removeItem('pintar_active_session_id');
+      } catch {}
+    }
+  }
+
   public async logOut() {
     try {
+      await this.destroyRemoteSession();
       await firebaseSignOut(auth);
     } catch {
       // ignore

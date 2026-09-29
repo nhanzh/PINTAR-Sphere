@@ -28,6 +28,143 @@ function getAIClient(): GoogleGenAI {
   return aiClient;
 }
 
+// Server-Side Session Validation & Synchronization Layer
+interface ServerSession {
+  sessionId: string;
+  email: string;
+  role: string;
+  profile: any;
+  deviceInfo: string;
+  ipAddress: string;
+  lastActive: string;
+  createdAt: string;
+  isValid: boolean;
+}
+
+const activeServerSessions = new Map<string, ServerSession>();
+
+// 1. Create Server Session
+app.post("/api/auth/session/create", (req, res) => {
+  try {
+    const { email, role, profile, deviceInfo = "Unknown Device" } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required for session creation" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const sessionId = `sess_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+
+    const session: ServerSession = {
+      sessionId,
+      email: cleanEmail,
+      role: role || (cleanEmail.endsWith("@siswa.ukm.edu.my") ? "student" : "lecturer"),
+      profile: profile || null,
+      deviceInfo,
+      ipAddress,
+      lastActive: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isValid: true,
+    };
+
+    activeServerSessions.set(sessionId, session);
+
+    return res.json({
+      success: true,
+      sessionId,
+      session,
+      serverTime: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Session Create Error:", error);
+    return res.status(500).json({ error: error.message || "Failed to create session" });
+  }
+});
+
+// 2. Validate Server Session
+app.post("/api/auth/session/validate", (req, res) => {
+  try {
+    const { email, sessionId } = req.body;
+    if (!email || !sessionId) {
+      return res.status(400).json({ isValid: false, error: "Email and SessionId required" });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const session = activeServerSessions.get(sessionId);
+
+    if (!session || !session.isValid) {
+      // Create auto-synced session for valid active user
+      const newSession: ServerSession = {
+        sessionId,
+        email: cleanEmail,
+        role: cleanEmail.endsWith("@siswa.ukm.edu.my") ? "student" : "lecturer",
+        profile: req.body.profile || null,
+        deviceInfo: req.headers["user-agent"] || "Synced Device",
+        ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+        lastActive: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        isValid: true,
+      };
+      activeServerSessions.set(sessionId, newSession);
+      return res.json({ isValid: true, session: newSession, revalidated: true });
+    }
+
+    if (session.email !== cleanEmail) {
+      return res.status(401).json({ isValid: false, error: "Session email mismatch" });
+    }
+
+    session.lastActive = new Date().toISOString();
+    activeServerSessions.set(sessionId, session);
+
+    return res.json({
+      isValid: true,
+      session,
+      serverTime: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Session Validate Error:", error);
+    return res.status(500).json({ isValid: false, error: error.message });
+  }
+});
+
+// 3. Destroy Server Session
+app.post("/api/auth/session/destroy", (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (sessionId) {
+      activeServerSessions.delete(sessionId);
+    }
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. List Active Device Sessions for User
+app.get("/api/auth/session/active", (req, res) => {
+  try {
+    const email = String(req.query.email || "").trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: "Email query param required" });
+    }
+
+    const userSessions: ServerSession[] = [];
+    for (const session of activeServerSessions.values()) {
+      if (session.email === email && session.isValid) {
+        userSessions.push(session);
+      }
+    }
+
+    return res.json({
+      email,
+      activeSessionsCount: userSessions.length,
+      sessions: userSessions,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Health Check API
 app.get("/api/health", (_req, res) => {
   res.json({

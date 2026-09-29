@@ -198,13 +198,21 @@ function AppContent() {
     };
   }, []);
 
-  // Subscribe to user notifications
+  // Subscribe to user notifications & validate server session
   useEffect(() => {
     if (user?.email) {
+      authService.validateRemoteSession(user.email, user).catch(() => {});
+      const interval = setInterval(() => {
+        authService.validateRemoteSession(user.email, user).catch(() => {});
+      }, 60000);
+
       const unsubNotifs = dataService.subscribeToNotifications(user, (data) =>
         setNotifications(data)
       );
-      return () => unsubNotifs();
+      return () => {
+        clearInterval(interval);
+        unsubNotifs();
+      };
     }
   }, [user]);
 

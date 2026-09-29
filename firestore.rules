@@ -20,6 +20,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Active Sessions collection (server-side session validation & sync layer)
+    match /activeSessions/{sessionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if true;
