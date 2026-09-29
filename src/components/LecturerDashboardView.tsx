@@ -67,6 +67,7 @@ interface LecturerDashboardViewProps {
   resources?: ResourceItem[];
   onSaveGrade?: (grade: StudentCourseGrade) => Promise<void>;
   onSaveKoko?: (record: StudentKokoRecord) => Promise<void>;
+  onCancelBroadcast?: (broadcastId: string) => void;
   setActiveTab: (tab: ActiveTab) => void;
   onOpenRescheduleModal?: () => void;
   onOpenUploadModal?: () => void;
@@ -84,12 +85,19 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   resources = [],
   onSaveGrade,
   onSaveKoko,
+  onCancelBroadcast,
   setActiveTab,
   onOpenRescheduleModal,
   onOpenUploadModal,
   onOpenBroadcastModal,
 }) => {
   const { lang, dict } = useLanguage();
+  const [localBroadcasts, setLocalBroadcasts] = useState<BroadcastNotice[]>(broadcasts);
+
+  useEffect(() => {
+    setLocalBroadcasts(broadcasts);
+  }, [broadcasts]);
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<{ id: string; title: string } | null>(null);
   const [kokoSubmissions, setKokoSubmissions] = useState<KokoSubmissionItem[]>([]);
@@ -99,6 +107,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   const [kokoActionToast, setKokoActionToast] = useState<string | null>(null);
   const [deadlineToDelete, setDeadlineToDelete] = useState<DeadlineItem | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<SubmissionRecord | null>(null);
+  const [cancellingBroadcastId, setCancellingBroadcastId] = useState<string | null>(null);
 
   const subjectName = user.taughtSubjectName || 'Chemistry I';
   const subjectCode = user.taughtSubjectCode || 'PNAP0133';
@@ -165,7 +174,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       a.click();
     } else {
       const blob = new Blob([
-        `Pusat PERMATApintar Negara UKM - Program ASASIpintar\n\n` +
+        `Pusat PERMATA@PINTAR Negara UKM - Program ASASIpintar\n\n` +
         `Subjek: ${res.courseCode} - ${res.title}\n` +
         `Kategori: ${res.category}\n` +
         `Disediakan oleh: ${res.uploadedBy}\n` +
@@ -205,7 +214,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                 {dict.lecturerPortal}
               </span>
               <span className="text-xs text-slate-300">
-                Pusat PERMATApintar Negara • ASASIpintar UKM
+                Pusat PERMATA@PINTAR Negara • ASASIpintar UKM
               </span>
             </div>
 
@@ -283,7 +292,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
         </div>
 
         <div className="mt-4 space-y-2.5">
-          {broadcasts.slice(0, 5).map((b) => (
+          {localBroadcasts.slice(0, 5).map((b) => (
             <div
               key={b.id}
               className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-start justify-between gap-4"
@@ -321,19 +330,39 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                 <div className="flex items-center justify-end gap-2">
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{dict.dispatchedToStudents}</div>
                   <button
-                    onClick={async () => {
-                      await dataService.cancelBroadcast(b.id);
+                    type="button"
+                    disabled={cancellingBroadcastId === b.id}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const targetId = b.id;
+                      const targetTitle = b.title;
+                      setCancellingBroadcastId(targetId);
+                      // Immediately remove optimistically from UI
+                      setLocalBroadcasts((prev) => prev.filter((item) => item.id !== targetId));
+                      try {
+                        await dataService.cancelBroadcast(targetId);
+                        if (onCancelBroadcast) {
+                          onCancelBroadcast(targetId);
+                        }
+                        setKokoActionToast(`Hebahan "${targetTitle}" telah berjaya dibatalkan!`);
+                        setTimeout(() => setKokoActionToast(null), 4000);
+                      } catch (err) {
+                        console.error('Failed to cancel broadcast', err);
+                      } finally {
+                        setCancellingBroadcastId(null);
+                      }
                     }}
-                    className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-[10px] font-bold transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                     title="Batal Hebahan Ini"
                   >
-                    Batal Siaran
+                    {cancellingBroadcastId === b.id ? 'Membatalkan...' : 'Batal Siaran'}
                   </button>
                 </div>
               </div>
             </div>
           ))}
-          {broadcasts.length === 0 && (
+          {localBroadcasts.length === 0 && (
             <div className="p-4 text-center text-xs text-slate-400">
               Tiada siaran hebahan aktif buat masa ini. Hebahan akan luput secara automatik selepas 24 jam.
             </div>

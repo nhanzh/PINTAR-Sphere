@@ -11,7 +11,7 @@ export interface KokoLevelOption {
 
 // KATEGORI A: PENYERTAAN / PENGLIBATAN (Max 1.0)
 export const KOKO_PARTICIPATION_LEVELS = [
-  { id: 'pusat', label: 'Peringkat Pusat (Pusat PERMATApintar™)', score: 0.1 },
+  { id: 'pusat', label: 'Peringkat Pusat (Pusat PERMATA@PINTAR)', score: 0.1 },
   { id: 'universiti', label: 'Peringkat Universiti (UKM)', score: 0.2 },
   { id: 'kebangsaan', label: 'Peringkat Kebangsaan', score: 0.3 },
   { id: 'antarabangsa', label: 'Peringkat Antarabangsa', score: 0.4 },

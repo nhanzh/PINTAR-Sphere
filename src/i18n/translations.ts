@@ -29,7 +29,7 @@ export const t = {
   ms: {
     // Brand & Header
     brandName: 'PINTAR@Sphere',
-    brandSubtitle: 'Pusat PERMATApintar™ Negara • ASASIpintar UKM',
+    brandSubtitle: 'Pusat PERMATA@PINTAR Negara • ASASIpintar UKM',
     exclusiveNotice: 'Eksklusif ASASIpintar UKM Sahaja',
     tagline: 'Sistem Pengurusan Akademik & Integrasi Pensyarah-Pelajar',
     selectLanguage: 'Pilih Bahasa / Language',
@@ -238,7 +238,7 @@ export const t = {
 
     // GPA Calculator (GpaCalculatorView)
     gpaCalculatorTitle: 'Kalkulator PNGS / PNGK ASASIpintar UKM',
-    gpaCalculatorDesc: 'Kiraan automatik berpandukan formula rasmi Pusat PERMATApintar™ Negara. Mengambil kira 2 subjek Sains terbaik untuk kelayakan perubatan dan kejuruteraan.',
+    gpaCalculatorDesc: 'Kiraan automatik berpandukan formula rasmi Pusat PERMATA@PINTAR Negara. Mengambil kira 2 subjek Sains terbaik untuk kelayakan perubatan dan kejuruteraan.',
     projectedSem1Gpa: 'Unjuran PNGS Semester I',
     targetCgpaSlider: 'Sasaran CGPA Graduasi',
     courseCode: 'Kod Kursus',
@@ -264,7 +264,7 @@ export const t = {
     clubsSocieties: 'Kelab & Persatuan',
     specialProjects: 'Projek Khas & Khidmat Komuniti',
     activityLogTitle: 'Rekod Penyertaan & Jawatan Kokurikulum',
-    ukmVerifiedNotice: 'Disahkan oleh Bahagian Hal Ehwal Pelajar Pusat PERMATApintar™ Negara UKM',
+    ukmVerifiedNotice: 'Disahkan oleh Bahagian Hal Ehwal Pelajar Pusat PERMATA@PINTAR Negara UKM',
 
     // Student Roster (StudentRosterView)
     rosterTitle: 'Direktori Pelajar ASASIpintar UKM',
@@ -331,7 +331,7 @@ export const t = {
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'Tutor & Enjin Penaakulan Akademik AI ASASIpintar',
     aiAssistantTitle: 'Pembantu Akademik AI ASASIpintar',
-    aiAssistantDesc: 'Bantuan khusus mata pelajaran berasaskan silibus PERMATApintar™ UKM',
+    aiAssistantDesc: 'Bantuan khusus mata pelajaran berasaskan silibus PERMATA@PINTAR UKM',
     aiThinkingText: 'Sedang merangka penyelesaian saintifik...',
     sendAiPrompt: 'Hantar Soalan',
     cancelBtn: 'Batal',
@@ -379,7 +379,7 @@ export const t = {
   en: {
     // Brand & Header
     brandName: 'PINTAR@Sphere',
-    brandSubtitle: 'Pusat PERMATApintar™ Negara • ASASIpintar UKM',
+    brandSubtitle: 'Pusat PERMATA@PINTAR Negara • ASASIpintar UKM',
     exclusiveNotice: 'Exclusive to ASASIpintar UKM Only',
     tagline: 'Academic Management & Lecturer-Student Integration Portal',
     selectLanguage: 'Language / Bahasa',
@@ -588,7 +588,7 @@ export const t = {
 
     // GPA Calculator (GpaCalculatorView)
     gpaCalculatorTitle: 'UKM ASASIpintar GPA / CGPA Calculator',
-    gpaCalculatorDesc: 'Automated calculator adhering to official Pusat PERMATApintar™ academic formula. Employs the 2 best sciences rule for medicine and engineering qualifications.',
+    gpaCalculatorDesc: 'Automated calculator adhering to official Pusat PERMATA@PINTAR academic formula. Employs the 2 best sciences rule for medicine and engineering qualifications.',
     projectedSem1Gpa: 'Projected Semester I GPA',
     targetCgpaSlider: 'Graduation CGPA Target',
     courseCode: 'Course Code',
@@ -614,7 +614,7 @@ export const t = {
     clubsSocieties: 'Clubs & Societies',
     specialProjects: 'Special Projects & Community Service',
     activityLogTitle: 'Official Activities & Leadership Records',
-    ukmVerifiedNotice: 'Verified by Student Affairs Division, Pusat PERMATApintar™ Negara UKM',
+    ukmVerifiedNotice: 'Verified by Student Affairs Division, Pusat PERMATA@PINTAR Negara UKM',
 
     // Student Roster (StudentRosterView)
     rosterTitle: 'ASASIpintar UKM Scholars Directory',
@@ -681,7 +681,7 @@ export const t = {
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI Academic Tutor & Reasoning Engine',
     aiAssistantTitle: 'ASASIpintar AI Academic Assistant',
-    aiAssistantDesc: 'Course-specific assistance grounded in official PERMATApintar™ UKM syllabi',
+    aiAssistantDesc: 'Course-specific assistance grounded in official PERMATA@PINTAR UKM syllabi',
     aiThinkingText: 'Formulating academic explanation...',
     sendAiPrompt: 'Send Prompt',
     cancelBtn: 'Cancel',
@@ -729,7 +729,7 @@ export const t = {
   zh: {
     // Brand & Header
     brandName: 'PINTAR@Sphere',
-    brandSubtitle: '国家PERMATApintar™中心 • 国大 (UKM) ASASIpintar 大学预科',
+    brandSubtitle: '国家PERMATA@PINTAR中心 • 国大 (UKM) ASASIpintar 大学预科',
     exclusiveNotice: '仅限 ASASIpintar 预科专属使用',
     tagline: '学术管理与讲师-学生双向实时联动系统',
     selectLanguage: '选择语言 / Language',
@@ -938,7 +938,7 @@ export const t = {
 
     // GPA Calculator (GpaCalculatorView)
     gpaCalculatorTitle: 'UKM ASASIpintar GPA / CGPA 智能测算器',
-    gpaCalculatorDesc: '严格遵循国家 PERMATApintar™ 官方学分绩点计算法则。自动按最优两门理科择优核算医学与工程专业资格。',
+    gpaCalculatorDesc: '严格遵循国家 PERMATA@PINTAR 官方学分绩点计算法则。自动按最优两门理科择优核算医学与工程专业资格。',
     projectedSem1Gpa: '第一学期预测 PNGS 绩点',
     targetCgpaSlider: '毕业目标 CGPA 设定',
     courseCode: '课程代码',
@@ -964,7 +964,7 @@ export const t = {
     clubsSocieties: '社团与学会',
     specialProjects: '特别项目与志愿服务',
     activityLogTitle: '官方活动履历与骨干职务',
-    ukmVerifiedNotice: '经 UKM 国家 PERMATApintar™ 中心学生事务处官方认证',
+    ukmVerifiedNotice: '经 UKM 国家 PERMATA@PINTAR 中心学生事务处官方认证',
 
     // Student Roster (StudentRosterView)
     rosterTitle: 'ASASIpintar 预科学员全员花名册',
@@ -1031,7 +1031,7 @@ export const t = {
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI 学术导师与推理引擎',
     aiAssistantTitle: 'ASASIpintar AI 学术助手',
-    aiAssistantDesc: '基于 PERMATApintar™ UKM 官方大纲的学科专属辅导',
+    aiAssistantDesc: '基于 PERMATA@PINTAR UKM 官方大纲的学科专属辅导',
     aiThinkingText: '正在整理学术解答...',
     sendAiPrompt: '发送提问',
     cancelBtn: '取消',
@@ -1079,7 +1079,7 @@ export const t = {
   ta: {
     // Brand & Header
     brandName: 'PINTAR@Sphere',
-    brandSubtitle: 'தேசிய PERMATApintar™ மையம் • UKM ASASIpintar',
+    brandSubtitle: 'தேசிய PERMATA@PINTAR மையம் • UKM ASASIpintar',
     exclusiveNotice: 'ASASIpintar UKM பயன்பாட்டிற்கு மட்டுமே',
     tagline: 'கல்வி மேலாண்மை மற்றும் விரிவுரையாளர்-மாணவர் நேரடி இணைப்பு தளம்',
     selectLanguage: 'மொழியைத் தேர்ந்தெடுக்கவும் / Language',
@@ -1288,7 +1288,7 @@ export const t = {
 
     // GPA Calculator (GpaCalculatorView)
     gpaCalculatorTitle: 'UKM ASASIpintar GPA / CGPA கால்குலேட்டர்',
-    gpaCalculatorDesc: 'அதிகாரப்பூர்வ PERMATApintar™ சூத்திரத்தின்படி தானியங்கி கணக்கீடு. மருத்துவம் மற்றும் பொறியியல் தகுதிக்கு சிறந்த 2 அறிவியலைக் கணக்கில் கொள்கிறது.',
+    gpaCalculatorDesc: 'அதிகாரப்பூர்வ PERMATA@PINTAR சூத்திரத்தின்படி தானியங்கி கணக்கீடு. மருத்துவம் மற்றும் பொறியியல் தகுதிக்கு சிறந்த 2 அறிவியலைக் கணக்கில் கொள்கிறது.',
     projectedSem1Gpa: 'கணிக்கப்பட்ட செமஸ்டர் 1 GPA',
     targetCgpaSlider: 'பட்டமளிப்பு CGPA இலக்கு',
     courseCode: 'பாடக் குறியீடு',
@@ -1314,7 +1314,7 @@ export const t = {
     clubsSocieties: 'மன்றங்கள் & சங்கங்கள்',
     specialProjects: 'சிறப்பு திட்டங்கள் & சமூக சேவை',
     activityLogTitle: 'அதிகாரப்பூர்வ செயல்பாடுகள் & தலைமைப் பதிவு',
-    ukmVerifiedNotice: 'Pusat PERMATApintar™ Negara UKM மாணவர் விவகாரப் பிரிவால் சரிபார்க்கப்பட்டது',
+    ukmVerifiedNotice: 'Pusat PERMATA@PINTAR Negara UKM மாணவர் விவகாரப் பிரிவால் சரிபார்க்கப்பட்டது',
 
     // Student Roster (StudentRosterView)
     rosterTitle: 'ASASIpintar UKM மாணவர் அடைவு',
@@ -1381,7 +1381,7 @@ export const t = {
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI கல்வி வழிகாட்டி',
     aiAssistantTitle: 'ASASIpintar AI கல்வி உதவியாளர்',
-    aiAssistantDesc: 'அதிகாரப்பூர்வ PERMATApintar™ UKM பாடத்திட்ட அடிப்படையிலான உதவி',
+    aiAssistantDesc: 'அதிகாரப்பூர்வ PERMATA@PINTAR UKM பாடத்திட்ட அடிப்படையிலான உதவி',
     aiThinkingText: 'விளக்கத்தை உருவாக்குகிறது...',
     sendAiPrompt: 'கேள்வியை அனுப்பு',
     cancelBtn: 'ரத்துசெய்க',

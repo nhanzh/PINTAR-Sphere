@@ -49,7 +49,7 @@ const VENUE_CODES = [
   { code: 'K2', name: 'Kelas 2 Fasa 2', desc: 'Bilik Kuliah/Tutorial K2' },
   { code: 'K3', name: 'Kelas 3 Fasa 3', desc: 'Bilik Kuliah/Tutorial K3' },
   { code: 'K4', name: 'Kelas 3 Fasa 4', desc: 'Bilik Kuliah/Tutorial K4' },
-  { code: 'AUDITORIUM', name: 'Auditorium Pusat PERMATApintar', desc: 'Dewan Kuliah Perdana (Semua Set)' },
+  { code: 'AUDITORIUM', name: 'Auditorium Pusat PERMATA@PINTAR', desc: 'Dewan Kuliah Perdana (Semua Set)' },
   { code: 'MAKMAL SENI', name: 'Makmal Seni', desc: 'Ruang Kolaborasi & Projek Penyelidikan' },
 ];
 
@@ -754,7 +754,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   Kalendar Sesi Akademik 2026/2027
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Pusat PERMATApintar™ Negara • Program ASASI PINTAR UKM
+                  Pusat PERMATA@PINTAR Negara • Program ASASI PINTAR UKM
                 </p>
               </div>
 
@@ -998,7 +998,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {dict.legendModalTitle}
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Pusat PERMATApintar Negara • ASASIpintar UKM
+                    Pusat PERMATA@PINTAR Negara • ASASIpintar UKM
                   </p>
                 </div>
               </div>

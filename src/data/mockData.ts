@@ -377,10 +377,10 @@ export const DEMO_ACCOUNTS = [
   },
   {
     role: 'lecturer' as const,
-    name: 'Penyelaras ASASIpintar Hub (Pusat PERMATApintar)',
+    name: 'Penyelaras ASASIpintar Hub (Pusat PERMATA@PINTAR)',
     email: 'asasipintarhub@gmail.com',
     setNumber: undefined,
-    label: 'Hub Admin • Pusat PERMATApintar™ Negara (asasipintarhub@gmail.com)',
+    label: 'Hub Admin • Pusat PERMATA@PINTAR Negara (asasipintarhub@gmail.com)',
     subject: 'general' as const,
   },
   {
@@ -400,7 +400,7 @@ export const INITIAL_RESOURCES: ResourceItem[] = [];
 // Official UKM schedule data with common auditorium lectures & Set 1-11 tutorials/labs
 export const INITIAL_SCHEDULES: ClassScheduleItem[] = OFFICIAL_UKM_CLASS_SCHEDULES;
 
-// Academic Calendar Events - Takwim Sesi 2026/2027 Pusat PERMATApintar Negara / ASASIpintar UKM
+// Academic Calendar Events - Takwim Sesi 2026/2027 Pusat PERMATA@PINTAR Negara / ASASIpintar UKM
 export const INITIAL_CALENDAR_EVENTS: CalendarEvent[] = OFFICIAL_UKM_CALENDAR_EVENTS;
 
 // Deadlines for Assignments / Quizzes / Presentations (Empty initially as portal is new)

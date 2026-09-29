@@ -230,7 +230,7 @@ export const OFFICIAL_FACULTY_LECTURERS: FacultyLecturer[] = [
     subjectName: 'Jati Diri (Self-Identity & Leadership)',
     subjectCode: 'PNAP0172',
     subjectId: 'jati_diri',
-    department: 'Pusat PERMATApintar Negara (Citra & Jati Diri)',
+    department: 'Pusat PERMATA@PINTAR Negara (Citra & Jati Diri)',
     title: 'Associate Professor / Head of Character Development',
   },
   {
@@ -239,7 +239,7 @@ export const OFFICIAL_FACULTY_LECTURERS: FacultyLecturer[] = [
     subjectName: 'Jati Diri (Self-Identity & Leadership)',
     subjectCode: 'PNAP0172',
     subjectId: 'jati_diri',
-    department: 'Pusat PERMATApintar Negara (Citra & Jati Diri)',
+    department: 'Pusat PERMATA@PINTAR Negara (Citra & Jati Diri)',
     title: 'Senior Officer / Lecturer',
   },
 ];

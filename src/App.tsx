@@ -319,6 +319,9 @@ function AppContent() {
               onSaveKoko={async (k) => {
                 await dataService.saveKokoRecord(k);
               }}
+              onCancelBroadcast={(id) => {
+                setBroadcasts((prev) => prev.filter((b) => b.id !== id));
+              }}
               setActiveTab={setActiveTab}
               onOpenRescheduleModal={() => setActiveTab('calendar')}
               onOpenUploadModal={() => setActiveTab('resources')}

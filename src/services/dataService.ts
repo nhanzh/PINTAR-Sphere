@@ -1647,14 +1647,38 @@ class DataService {
   }
 
   // --- LIVE BROADCAST DISPATCHES (Lecturer to Student real-time sync with 24h auto-expiry) ---
+  private broadcastListeners = new Set<(broadcasts: BroadcastNotice[]) => void>();
+
+  private filterValidBroadcasts(list: BroadcastNotice[]): BroadcastNotice[] {
+    const cancelledIds = new Set(getLocal<string[]>('pintar_cancelled_broadcast_ids', []));
+    return (list || [])
+      .filter((b) => !cancelledIds.has(b.id) && isWithin24Hours(b.createdAt))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  private notifyBroadcastListeners(broadcasts: BroadcastNotice[]) {
+    this.broadcastListeners.forEach((cb) => {
+      try {
+        cb(broadcasts);
+      } catch (e) {
+        console.error('Error notifying broadcast listener', e);
+      }
+    });
+  }
+
   public subscribeBroadcasts(callback: (broadcasts: BroadcastNotice[]) => void): () => void {
+    this.broadcastListeners.add(callback);
+
     const rawLocal = getLocal<BroadcastNotice[]>(KEYS.BROADCASTS, INITIAL_BROADCASTS);
-    const activeLocal = rawLocal.filter((b) => isWithin24Hours(b.createdAt));
-    callback(activeLocal);
+    callback(this.filterValidBroadcasts(rawLocal));
 
     const unsubSync = registerSyncListener<BroadcastNotice[]>(KEYS.BROADCASTS, (data) => {
-      const active = (data || []).filter((b) => isWithin24Hours(b.createdAt));
-      callback(active);
+      callback(this.filterValidBroadcasts(data));
+    });
+
+    const unsubCancelled = registerSyncListener<string[]>('pintar_cancelled_broadcast_ids', () => {
+      const curr = getLocal<BroadcastNotice[]>(KEYS.BROADCASTS, INITIAL_BROADCASTS);
+      callback(this.filterValidBroadcasts(curr));
     });
 
     try {
@@ -1667,15 +1691,9 @@ class DataService {
             snapshot.forEach((docSnap) => {
               items.push({ id: docSnap.id, ...(docSnap.data() as any) });
             });
-            // Auto-filter 24-hour expiration & sort newest first
-            const activeItems = items
-              .filter((b) => isWithin24Hours(b.createdAt))
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
+            const activeItems = this.filterValidBroadcasts(items);
             saveLocal(KEYS.BROADCASTS, activeItems);
             callback(activeItems);
-          } else {
-            callback([]);
           }
         },
         (error) => {
@@ -1683,11 +1701,17 @@ class DataService {
         }
       );
       return () => {
+        this.broadcastListeners.delete(callback);
         unsubSync();
+        unsubCancelled();
         unsubscribe();
       };
     } catch {
-      return unsubSync;
+      return () => {
+        this.broadcastListeners.delete(callback);
+        unsubSync();
+        unsubCancelled();
+      };
     }
   }
 
@@ -1704,6 +1728,7 @@ class DataService {
     const activeExisting = current.filter((b) => isWithin24Hours(b.createdAt));
     const updated = [newItem, ...activeExisting];
     saveLocal(KEYS.BROADCASTS, updated);
+    this.notifyBroadcastListeners(this.filterValidBroadcasts(updated));
 
     try {
       await setDoc(doc(db, 'broadcastNotices', newItem.id), newItem);
@@ -1724,9 +1749,18 @@ class DataService {
   }
 
   public async deleteBroadcast(broadcastId: string): Promise<void> {
+    const cancelledIds = getLocal<string[]>('pintar_cancelled_broadcast_ids', []);
+    if (!cancelledIds.includes(broadcastId)) {
+      cancelledIds.push(broadcastId);
+      saveLocal('pintar_cancelled_broadcast_ids', cancelledIds);
+    }
+
     const current = getLocal<BroadcastNotice[]>(KEYS.BROADCASTS, INITIAL_BROADCASTS);
-    const updated = current.filter((b) => b.id !== broadcastId);
+    const updated = current.filter((b) => b.id !== broadcastId && !cancelledIds.includes(b.id));
     saveLocal(KEYS.BROADCASTS, updated);
+
+    // Immediately notify all active listeners
+    this.notifyBroadcastListeners(this.filterValidBroadcasts(updated));
 
     try {
       await deleteDoc(doc(db, 'broadcastNotices', broadcastId));

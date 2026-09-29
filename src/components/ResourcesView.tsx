@@ -112,7 +112,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
       a.click();
     } else {
       const blob = new Blob([
-        `Pusat PERMATApintar Negara UKM - Program ASASIpintar\n\n` +
+        `Pusat PERMATA@PINTAR Negara UKM - Program ASASIpintar\n\n` +
         `Subjek: ${res.courseCode} - ${res.title}\n` +
         `Kategori: ${res.category}\n` +
         `Disediakan oleh: ${res.uploadedBy}\n` +

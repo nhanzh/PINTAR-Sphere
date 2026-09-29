@@ -15,22 +15,22 @@ export const PortalHeaderBar: React.FC<PortalHeaderBarProps> = ({
 
   const labels = {
     ms: {
-      subtitle: 'Pusat PERMATApintar™ Negara • Universiti Kebangsaan Malaysia',
+      subtitle: 'Pusat PERMATA@PINTAR Negara • Universiti Kebangsaan Malaysia',
       studentPortal: 'Portal Pelajar',
       lecturerPortal: 'Portal Pensyarah',
     },
     en: {
-      subtitle: 'National PERMATApintar™ Centre • Universiti Kebangsaan Malaysia',
+      subtitle: 'National PERMATA@PINTAR Centre • Universiti Kebangsaan Malaysia',
       studentPortal: 'Student Portal',
       lecturerPortal: 'Lecturer Portal',
     },
     zh: {
-      subtitle: '国家 PERMATApintar™ 中心 • 马来西亚国立大学 (UKM)',
+      subtitle: '国家 PERMATA@PINTAR 中心 • 马来西亚国立大学 (UKM)',
       studentPortal: '学生专属门户',
       lecturerPortal: '讲师专属门户',
     },
     ta: {
-      subtitle: 'தேசிய PERMATApintar™ மையம் • மலேசிய தேசிய பல்கலைக்கழகம் (UKM)',
+      subtitle: 'தேசிய PERMATA@PINTAR மையம் • மலேசிய தேசிய பல்கலைக்கழகம் (UKM)',
       studentPortal: 'மாணவர் போர்டல்',
       lecturerPortal: 'விரிவுரையாளர் போர்டல்',
     },

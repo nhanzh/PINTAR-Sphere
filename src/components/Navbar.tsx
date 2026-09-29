@@ -76,14 +76,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 px-2 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 group-hover:scale-[1.02] transition-transform">
                 <img
-                  src="/logo_ukm.png"
+                  src="/ukm.jpeg"
                   alt="Universiti Kebangsaan Malaysia"
                   className="h-8 sm:h-9 w-auto object-contain rounded"
                   referrerPolicy="no-referrer"
                 />
                 <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
                 <img
-                  src="/logo_asasipintar.png"
+                  src="/asasi_pintar.jpeg"
                   alt="ASASIpintar UKM"
                   className="h-7 sm:h-8 w-auto object-contain rounded"
                   referrerPolicy="no-referrer"

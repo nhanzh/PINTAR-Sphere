@@ -20,7 +20,7 @@ export const AUTHORIZED_LECTURERS: AuthorizedLecturer[] = [
     subjectId: 'general',
     subjectCode: 'ASASI-HUB',
     subjectName: 'Penyelaras ASASIpintar UKM',
-    department: 'Pusat PERMATApintar™ Negara / Pengurusan ASASIpintar',
+    department: 'Pusat PERMATA@PINTAR Negara / Pengurusan ASASIpintar',
   },
   {
     name: 'DR. IKHWAN BIN ZAKARIA',

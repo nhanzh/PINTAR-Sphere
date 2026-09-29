@@ -2,7 +2,7 @@ import { ClassScheduleItem, CalendarEvent } from '../types.ts';
 
 /**
  * KALENDAR SESI AKADEMIK 2026/2027
- * Fakulti / Institut / Pusat: Pusat PERMATApintar Negara
+ * Fakulti / Institut / Pusat: Pusat PERMATA@PINTAR Negara
  * Program: ASASI PINTAR, Universiti Kebangsaan Malaysia (UKM)
  * Dokumen Asal: LAMPIRAN B - UKM
  */

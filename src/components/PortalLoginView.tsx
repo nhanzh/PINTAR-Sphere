@@ -200,16 +200,16 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
       <div className="max-w-6xl w-full mx-auto flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
           {/* Dual Official Logos: UKM Crest & ASASIpintar */}
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800/90 p-1.5 px-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800/90 p-1.5 px-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80">
             <img
-              src="/logo_ukm.png"
+              src="/ukm.jpeg"
               alt="Universiti Kebangsaan Malaysia Crest"
-              className="h-9 sm:h-10 w-auto object-contain"
+              className="h-9 sm:h-11 w-auto object-contain"
               referrerPolicy="no-referrer"
             />
-            <div className="h-7 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
+            <div className="h-7 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
             <img
-              src="/logo_asasipintar.png"
+              src="/asasi_pintar.jpeg"
               alt="ASASIpintar Logo"
               className="h-8 sm:h-9 w-auto object-contain"
               referrerPolicy="no-referrer"
@@ -583,19 +583,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5" />
-                  </div>
-                </div>
-
-                {/* Notice on password registration requirement */}
-                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2.5">
-                  <Info className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                  <div>
-                    <span className="font-semibold">
-                      {lang === 'ms' ? 'Keperluan Kata Laluan Pensyarah:' : 'Faculty Password Requirement:'}
-                    </span>{' '}
-                    {lang === 'ms'
-                      ? 'Sama seperti dashboard pelajar, pensyarah perlu mendaftar masuk bersama kata laluan terlebih dahulu (tab "Daftar Akaun") sebelum boleh log masuk.'
-                      : 'Similar to student portal, faculty must register with a secure password first (via "Register" tab) before logging in.'}
                   </div>
                 </div>
 

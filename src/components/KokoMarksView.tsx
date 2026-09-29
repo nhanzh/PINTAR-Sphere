@@ -305,7 +305,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
         : 'Kategori C: Perjawatan';
 
     const levelNameMap: Record<KokoLevel, string> = {
-      pusat: 'Pusat PERMATApintar / Kolej',
+      pusat: 'Pusat PERMATA@PINTAR / Kolej',
       universiti: 'Universiti (UKM)',
       kebangsaan: 'Kebangsaan (National)',
       antarabangsa: 'Antarabangsa (International)',
@@ -1387,9 +1387,6 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Pengurusan Gred Pembangunan Jati Diri &amp; Kebangsaan (7%)
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Paparan senarai pelajar mengikut tapis set. Tetapkan gred rasmi atau reset secara individu / pukal.
-                </p>
               </div>
             </div>
 
@@ -1778,7 +1775,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                   onChange={(e) => setLevel(e.target.value as KokoLevel)}
                   className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-amber-500"
                 >
-                  <option value="pusat">Pusat PERMATApintar / Kolej</option>
+                  <option value="pusat">Pusat PERMATA@PINTAR / Kolej</option>
                   <option value="universiti">Universiti (UKM)</option>
                   <option value="kebangsaan">Kebangsaan (National)</option>
                   <option value="antarabangsa">Antarabangsa (International)</option>
