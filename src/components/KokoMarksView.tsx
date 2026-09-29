@@ -68,9 +68,8 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
   const isStudent = user.role === 'student';
 
   // Role-based permissions
-  // Access rules: All lecturers have review access to receive student koko applications
-  const canKoko = isStudent ? true : true;
-  const canJatiDiri = isStudent ? true : true;
+  const canKoko = canAccessKokoApplications(user.email, user.name, user.role);
+  const canJatiDiri = canAccessJatiDiriMarks(user.email, user.name, user.role);
   const isPenyelaras = isProgramCoordinator(user.email, user.name);
   const isDrMona = isKokoCoordinator(user.email, user.name);
   const isJatiDiriLecturer = isJatiDiriCoordinator(user.email, user.name);

@@ -157,7 +157,7 @@ export const t = {
     auditCoursework: 'Audit Tugasan',
     studentsSubmittedCount: '{count} Pelajar Hantar',
     inspectFiles: 'Semak Fail',
-    submissionsLogTitle: 'Log Penerimaan Tugasan Pelajar (Segerak Nyata)',
+    submissionsLogTitle: 'Log Penerimaan Tugasan Pelajar',
     liveSyncBadge: 'Penyelarasan Langsung',
     thStudentNameEmail: 'Nama & Emel Pelajar',
     thSet: 'Set',

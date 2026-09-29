@@ -148,31 +148,34 @@ export function isJatiDiriCoordinator(email?: string, name?: string): boolean {
 /**
  * Who can access Koko Applications (Permohonan / Semakan Aktiviti Koko):
  * - Students (to submit & view own)
- * - All lecturers (to receive, view, and process student applications)
+ * - Pusat Asasipintar Hub Admin ONLY (other lecturers have no access to koko)
  */
 export function canAccessKokoApplications(email?: string, name?: string, role?: string): boolean {
-  // All lecturers can access and review koko applications submitted by students
-  if (role === 'lecturer' || role === 'student') return true;
-  return isProgramCoordinator(email, name) || isKokoCoordinator(email, name);
+  if (role === 'student') return true;
+  return isProgramCoordinator(email, name);
 }
 
 /**
  * Who can access Jati Diri Marks (Markah Jati Diri):
  * - Students (view own published result)
- * - All lecturers (can view and evaluate Jati Diri)
+ * - Pusat Asasipintar Hub Admin
+ * - Dr. Mona (monafatin@ukm.edu.my)
+ * - Dr. Elmi (elmiazlina@ukm.edu.my) & Puan Suhaina (suhainaymd@ukm.edu.my)
+ * - Other lecturers have NO access
  */
 export function canAccessJatiDiriMarks(email?: string, name?: string, role?: string): boolean {
-  if (role === 'student' || role === 'lecturer') return true;
-  return isProgramCoordinator(email, name) || isJatiDiriCoordinator(email, name);
+  if (role === 'student') return true;
+  return isProgramCoordinator(email, name) || isJatiDiriCoordinator(email, name) || isKokoCoordinator(email, name);
 }
 
 /**
- * Who can see the Koko & Jati Diri Tab in Navigation / Sidebar:
+ * Who can see the Koko Tab in Navigation / Sidebar:
  * - Students
- * - All lecturers (can view koko and process claims)
+ * - Pusat Asasipintar Hub Admin ONLY
  */
 export function canAccessKokoModule(email?: string, name?: string, role?: string): boolean {
-  return true;
+  if (role === 'student') return true;
+  return isProgramCoordinator(email, name);
 }
 
 /**
