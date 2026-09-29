@@ -77,11 +77,15 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
   // Filter deadlines targeted to this set
   const myDeadlines = deadlines.filter((d) => {
-    return (
-      d.targetSets.includes('all') ||
-      d.targetSets.includes(`Set ${studentSet}`) ||
-      d.targetSets.some((ts) => ts.toLowerCase().includes(String(studentSet)))
-    );
+    return d.targetSets.some((ts) => {
+      const lower = ts.toLowerCase().trim();
+      if (lower === 'all' || lower === 'set all') return true;
+      const match = lower.match(/\d+/);
+      if (match) {
+        return Number(match[0]) === studentSet;
+      }
+      return lower === String(studentSet) || lower === `set ${studentSet}`;
+    });
   });
 
   // Filter grades for this student only

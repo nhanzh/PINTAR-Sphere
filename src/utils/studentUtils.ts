@@ -169,6 +169,24 @@ export function canAccessJatiDiriMarks(email?: string, name?: string, role?: str
 }
 
 /**
+ * Helper to check if a specific student set is targeted by a targetSets array.
+ * Performs exact set number matching so "Set 10" does not incorrectly match Set 1.
+ */
+export function isSetTargeted(targetSets?: string[], studentSetNumber?: number): boolean {
+  if (!targetSets || targetSets.length === 0) return true;
+  const setNum = studentSetNumber || 1;
+  return targetSets.some((ts) => {
+    const lower = ts.toLowerCase().trim();
+    if (lower === 'all' || lower === 'set all') return true;
+    const match = lower.match(/\d+/);
+    if (match) {
+      return Number(match[0]) === setNum;
+    }
+    return lower === String(setNum) || lower === `set ${setNum}`;
+  });
+}
+
+/**
  * Who can see the Koko Tab in Navigation / Sidebar:
  * - Students
  * - Pusat Asasipintar Hub Admin

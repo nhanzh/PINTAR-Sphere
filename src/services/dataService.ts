@@ -1794,11 +1794,12 @@ class DataService {
     callback: (notifications: AppNotification[]) => void
   ): () => void {
     const cleanUserEmail = (typeof targetUser === 'string' ? targetUser : targetUser.email || '').toLowerCase();
-    const userRole = typeof targetUser === 'string' ? undefined : targetUser.role;
-    const isStudentRole = userRole === 'student';
-    const isLecturerRole = userRole === 'lecturer';
+    const isStudentByEmail = cleanUserEmail.endsWith('@siswa.ukm.edu.my');
+    const userRole = typeof targetUser === 'string' ? (isStudentByEmail ? 'student' : 'lecturer') : targetUser.role;
+    const isStudentRole = userRole === 'student' || isStudentByEmail;
+    const isLecturerRole = userRole === 'lecturer' && !isStudentByEmail;
     const isPusatHubAdmin = cleanUserEmail === 'asasipintarhub@gmail.com' || isProgramCoordinator(cleanUserEmail);
-    const studentSet = typeof targetUser === 'string' ? getStudentSetNumber(targetUser) : getStudentSetNumber(targetUser);
+    const studentSet = getStudentSetNumber(typeof targetUser === 'string' ? cleanUserEmail : targetUser);
 
     const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
     const rawLocal = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
@@ -1821,12 +1822,12 @@ class DataService {
         if (isStudentRole && n.targetSets && n.targetSets.length > 0) {
           const isTargeted = n.targetSets.some((ts) => {
             const lowerTs = ts.toLowerCase().trim();
-            return (
-              lowerTs === 'all' ||
-              lowerTs === 'set all' ||
-              lowerTs === `set ${studentSet}` ||
-              lowerTs === String(studentSet)
-            );
+            if (lowerTs === 'all' || lowerTs === 'set all') return true;
+            const match = lowerTs.match(/\d+/);
+            if (match) {
+              return Number(match[0]) === studentSet;
+            }
+            return lowerTs === String(studentSet) || lowerTs === `set ${studentSet}`;
           });
           if (!isTargeted) return false;
         }

@@ -55,10 +55,15 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
   const filteredResources = resources.filter((res) => {
     // If student, only show resources targeted to 'all' or this student's set
     if (isStudent) {
-      const isTargeted =
-        res.targetSets.includes('all') ||
-        res.targetSets.includes(`Set ${studentSet}`) ||
-        res.targetSets.some((s) => s.toLowerCase().includes(String(studentSet)));
+      const isTargeted = res.targetSets.some((ts) => {
+        const lower = ts.toLowerCase().trim();
+        if (lower === 'all' || lower === 'set all') return true;
+        const match = lower.match(/\d+/);
+        if (match) {
+          return Number(match[0]) === studentSet;
+        }
+        return lower === String(studentSet) || lower === `set ${studentSet}`;
+      });
       if (!isTargeted) return false;
     }
 
