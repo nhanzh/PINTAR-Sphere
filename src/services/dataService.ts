@@ -30,7 +30,7 @@ import {
   UserProfile,
 } from '../types.ts';
 import { isWithin24Hours } from '../utils/dateUtils.ts';
-import { getStudentSetNumber, isProgramCoordinator } from '../utils/studentUtils.ts';
+import { getStudentSetNumber, isProgramCoordinator, isKokoCoordinator } from '../utils/studentUtils.ts';
 import {
   INITIAL_RESOURCES,
   INITIAL_SCHEDULES,
@@ -491,19 +491,31 @@ class DataService {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const items: SubmissionRecord[] = [];
-            snapshot.forEach((docSnap) => {
-              const data = docSnap.data() as any;
-              items.push({
-                id: docSnap.id,
-                ...data,
-                setNumber: getStudentSetNumber(data),
-              });
+          const remoteItems: SubmissionRecord[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as any;
+            remoteItems.push({
+              id: docSnap.id,
+              ...data,
+              setNumber: getStudentSetNumber(data),
             });
-            saveLocal(KEYS.SUBMISSIONS, items);
-            callback(items);
-          }
+          });
+
+          // Merge local and remote items by ID so no submission gets lost
+          const currentLocal = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
+          const map = new Map<string, SubmissionRecord>();
+          remoteItems.forEach((item) => map.set(item.id, item));
+          currentLocal.forEach((item) => {
+            if (!map.has(item.id)) {
+              map.set(item.id, item);
+            }
+          });
+
+          const merged = Array.from(map.values());
+          merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
+          saveLocal(KEYS.SUBMISSIONS, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore submissions listener fallback:', error.message);
@@ -937,18 +949,31 @@ class DataService {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const items: KokoSubmissionItem[] = [];
+          const remoteItems: KokoSubmissionItem[] = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as any;
-            items.push({
+            remoteItems.push({
               id: docSnap.id,
               ...data,
               setNumber: getStudentSetNumber(data),
             });
           });
-          items.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-          saveLocal(KEYS.KOKO_SUBMISSIONS, items);
-          callback(items);
+
+          // Merge local and remote items by ID so no submission gets lost
+          const currentLocal = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
+          const map = new Map<string, KokoSubmissionItem>();
+          remoteItems.forEach((item) => map.set(item.id, item));
+          currentLocal.forEach((item) => {
+            if (!map.has(item.id)) {
+              map.set(item.id, item);
+            }
+          });
+
+          const merged = Array.from(map.values());
+          merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
+          saveLocal(KEYS.KOKO_SUBMISSIONS, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore kokoSubmissions listener fallback:', error.message);
@@ -985,14 +1010,21 @@ class DataService {
     const updated = [newItem, ...current];
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
 
+    // Prepare bounded copy for remote Firestore to guarantee setDoc success (<1MB limit)
+    const firestoreDoc = { ...newItem };
+    if (firestoreDoc.certificateFileUrl && firestoreDoc.certificateFileUrl.length > 600000) {
+      firestoreDoc.certificateFileUrl = firestoreDoc.certificateFileUrl.substring(0, 600000);
+    }
+
     try {
-      await setDoc(doc(db, 'kokoSubmissions', newItem.id), sanitizeForFirestore(newItem));
+      await setDoc(doc(db, 'kokoSubmissions', newItem.id), sanitizeForFirestore(firestoreDoc));
     } catch (err) {
       console.warn('Firestore submitKokoActivity error:', err);
     }
 
     this.addNotification({
       recipientEmail: 'all',
+      senderEmail: submission.studentEmail,
       type: 'koko_submitted',
       title: 'Permohonan Aktiviti KOKO Baharu',
       message: `${submission.studentName} (${submission.studentEmail}) telah menghantar permohonan pengiktirafan aktiviti "${submission.activityName}".`,
@@ -1843,6 +1875,10 @@ class DataService {
             ) {
               return false;
             }
+          }
+          if (n.type === 'koko_submitted') {
+            if (isPusatHubAdmin || isKokoCoordinator(cleanUserEmail)) return true;
+            return false;
           }
         }
 
