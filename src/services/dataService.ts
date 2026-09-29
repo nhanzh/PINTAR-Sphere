@@ -892,34 +892,41 @@ class DataService {
   }
 
   public async saveStudentKoko(record: StudentKokoRecord): Promise<void> {
+    const cleanEmail = record.studentEmail.trim().toLowerCase();
+    const normalizedRecord: StudentKokoRecord = {
+      ...record,
+      studentEmail: cleanEmail,
+      id: record.id || `koko-rec-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+    };
+
     const current = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
     const index = current.findIndex(
-      (r) => r.studentEmail.toLowerCase() === record.studentEmail.toLowerCase()
+      (r) => r.studentEmail.toLowerCase() === cleanEmail
     );
 
     let updated: StudentKokoRecord[];
     if (index >= 0) {
       updated = [...current];
-      updated[index] = record;
+      updated[index] = normalizedRecord;
     } else {
-      updated = [record, ...current];
+      updated = [normalizedRecord, ...current];
     }
     saveLocal(KEYS.KOKO, updated);
 
     try {
-      await setDoc(doc(db, 'kokoRecords', record.id), sanitizeForFirestore(record));
+      await setDoc(doc(db, 'kokoRecords', normalizedRecord.id), sanitizeForFirestore(normalizedRecord));
     } catch (err) {
       console.warn('Firestore saveStudentKoko sync error:', err);
     }
 
-    if (record.isPublished) {
+    if (normalizedRecord.isPublished) {
       this.addNotification({
-        recipientEmail: record.studentEmail,
+        recipientEmail: cleanEmail,
         type: 'koko_reviewed',
-        title: 'Markah Kokurikulum Diterbitkan',
-        message: `Markah Kokurikulum UKM anda (Jumlah: ${record.totalKoko10 ?? record.totalScore}%) telah dikemas kini oleh ${record.updatedBy}.`,
+        title: 'Markah Kokurikulum & Jati Diri Diterbitkan',
+        message: `Markah Kokurikulum & Jati Diri UKM anda (Jumlah: ${normalizedRecord.totalKoko10 ?? normalizedRecord.totalScore}%) telah dikemas kini oleh ${normalizedRecord.updatedBy}.`,
         linkTab: 'koko',
-        senderName: record.updatedBy,
+        senderName: normalizedRecord.updatedBy,
       });
     }
   }
@@ -1278,21 +1285,10 @@ class DataService {
             }
           });
 
-          // Combine remote Firestore items with current local items so no thread is lost
-          const currentLocal = getLocal<ForumPost[]>(KEYS.FORUM, INITIAL_FORUM_POSTS);
-          const postsMap = new Map<string, ForumPost>();
-          remoteItems.forEach((p) => postsMap.set(p.id, p));
-          currentLocal.forEach((p) => {
-            if (!currentDeleted.has(p.id) && !postsMap.has(p.id)) {
-              postsMap.set(p.id, p);
-            }
-          });
+          remoteItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-          const merged = Array.from(postsMap.values());
-          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-          saveLocal(KEYS.FORUM, merged);
-          callback(merged);
+          saveLocal(KEYS.FORUM, remoteItems);
+          callback(remoteItems);
         },
         (error) => {
           console.warn('Firestore forum listener fallback:', error.message);
