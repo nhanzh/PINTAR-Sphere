@@ -180,7 +180,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                 {dict.studentPortal} • SET {studentSet}
               </span>
               <span className="text-xs text-slate-400">
-                {dict.matricNumber}: {user.matricNumber || 'AP05710'}
+                {dict.matricNumber}: {user.matricNumber || user.email.split('@')[0].toUpperCase()}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-2 tracking-tight">

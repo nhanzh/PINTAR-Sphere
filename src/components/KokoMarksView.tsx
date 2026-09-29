@@ -311,13 +311,16 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     };
 
     const subCategory = category === 'B' ? achievementLevel : category === 'C' ? positionRole : undefined;
+    const derivedMatric = user.matricNumber || user.email.split('@')[0].toUpperCase();
+    const derivedSet = getStudentSetNumber(user) || user.setNumber || 1;
 
     await dataService.submitKokoActivity({
-      studentId: user.matricNumber || 'AP05710',
+      studentId: derivedMatric,
       studentName: user.name,
       studentEmail: user.email,
-      matricNumber: user.matricNumber || 'AP05710',
-      setNumber: user.setNumber || 3,
+      matricNumber: derivedMatric,
+      setNumber: derivedSet,
+      originatingSet: `Set ${derivedSet}`,
       category,
       categoryName,
       subCategory,
@@ -425,12 +428,15 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     const kokoActivitiesTotal = Math.min(3.0, Math.round((part + ach + pos) * 1000) / 1000);
     const totalKoko10 = Math.min(10.0, Math.round((gradeObj.score + kokoActivitiesTotal) * 1000) / 1000);
 
+    const derivedStudentMatric = st?.matricNumber || existing?.matricNumber || studentEmail.split('@')[0].toUpperCase();
+    const derivedStudentSet = st?.setNumber || existing?.setNumber || getStudentSetNumber(studentEmail);
+
     const newRec: StudentKokoRecord = {
       id: existing ? existing.id : `koko-${Date.now()}-${(st?.matricNumber || 'ap').toLowerCase()}`,
       studentEmail,
       studentName: st?.name || existing?.studentName || studentName,
-      matricNumber: st?.matricNumber || existing?.matricNumber || 'AP05710',
-      setNumber: st?.setNumber || existing?.setNumber || 3,
+      matricNumber: derivedStudentMatric,
+      setNumber: derivedStudentSet,
       jatiDiriScore: gradeObj.score,
       kokoParticipation: part,
       kokoAchievement: ach,

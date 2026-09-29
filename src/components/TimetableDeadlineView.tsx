@@ -255,7 +255,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
     setIsSubmittingWork(true);
     await dataService.submitWork(
       selectedDeadline.id,
-      user.matricNumber || 'AP05710',
+      user.matricNumber || user.email.split('@')[0].toUpperCase(),
       user.name,
       user.email,
       studentSet,

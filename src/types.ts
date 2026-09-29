@@ -330,6 +330,7 @@ export interface KokoSubmissionItem {
   studentEmail: string;
   matricNumber: string;
   setNumber: number;
+  originatingSet?: string; // e.g. 'Set 2'
   category: KokoCategory;
   categoryName: string;
   subCategory?: string; // e.g. emas, perak, gangsa, presiden, ajk, etc.
