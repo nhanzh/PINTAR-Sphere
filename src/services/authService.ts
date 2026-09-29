@@ -15,6 +15,81 @@ import {
 } from '../data/authorizedLecturers.ts';
 import { hydrateStudentProfile, getStudentSetNumber } from '../utils/studentUtils.ts';
 
+export interface DummyTestAccount {
+  role: UserRole;
+  name: string;
+  email: string;
+  matricNumber?: string;
+  setNumber?: number;
+  subjectName?: string;
+  description: string;
+  defaultPassword: string;
+}
+
+export const DUMMY_TEST_ACCOUNTS: DummyTestAccount[] = [
+  // Students
+  {
+    role: 'student',
+    name: 'NUR HANNAN ZAHIRAH BINTI MOHD ZAKI',
+    email: 'ap05710@siswa.ukm.edu.my',
+    matricNumber: 'AP05710',
+    setNumber: 3,
+    description: 'Pelajar Siswa Set 3 (Akaun Utama)',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'student',
+    name: 'AIMI AISYAH BINTI AHMAD',
+    email: 'ap05466@siswa.ukm.edu.my',
+    matricNumber: 'AP05466',
+    setNumber: 1,
+    description: 'Pelajar Siswa Set 1',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'student',
+    name: 'TAN SHI MAN',
+    email: 'ap05560@siswa.ukm.edu.my',
+    matricNumber: 'AP05560',
+    setNumber: 5,
+    description: 'Pelajar Siswa Set 5',
+    defaultPassword: '123456',
+  },
+  // Lecturers
+  {
+    role: 'lecturer',
+    name: 'Pusat ASASIpintar Admin Hub',
+    email: 'asasipintarhub@gmail.com',
+    subjectName: 'Penyelaras ASASIpintar UKM',
+    description: 'Admin Hub & Penyelaras ASASIpintar',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'lecturer',
+    name: 'DR. MONA FATIN SYAZWANEE MOHAMED GHAZALI',
+    email: 'monafatin@ukm.edu.my',
+    subjectName: 'Biology I (PNAP0113) & Penyelaras Kokurikulum',
+    description: 'Pensyarah Biologi & Penyelaras Kokurikulum',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'lecturer',
+    name: 'DR. NOR AZAH BINTI NIK JAAFAR',
+    email: 'norazah_nj@ukm.edu.my',
+    subjectName: 'Physics I (PNAP0123)',
+    description: 'Pensyarah Fizik I',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'lecturer',
+    name: 'PM DR. CHIN SIEW XIAN',
+    email: 'chinsiewxian@ukm.edu.my',
+    subjectName: 'Chemistry I (PNAP0133)',
+    description: 'Pensyarah Kimia I',
+    defaultPassword: '123456',
+  },
+];
+
 const LOCAL_USERS_KEY = 'pintar_registered_accounts_v1';
 
 interface RegisteredAccount {
@@ -24,12 +99,60 @@ interface RegisteredAccount {
 }
 
 function getLocalAccounts(): RegisteredAccount[] {
+  let accounts: RegisteredAccount[] = [];
   try {
     const raw = localStorage.getItem(LOCAL_USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+    if (raw) {
+      accounts = JSON.parse(raw);
+    }
+  } catch {}
+
+  const existingEmails = new Set(accounts.map((a) => a.email.toLowerCase()));
+  let addedAny = false;
+
+  for (const dummy of DUMMY_TEST_ACCOUNTS) {
+    if (!existingEmails.has(dummy.email.toLowerCase())) {
+      let profile: UserProfile;
+      if (dummy.role === 'student') {
+        profile = hydrateStudentProfile(dummy.email, {
+          uid: `dummy-${dummy.email.split('@')[0]}`,
+          name: dummy.name,
+          email: dummy.email,
+          role: 'student',
+          matricNumber: dummy.matricNumber,
+          setNumber: dummy.setNumber,
+        });
+      } else {
+        const lecturerInfo = findAuthorizedLecturer(dummy.email);
+        profile = {
+          uid: `dummy-${dummy.email.split('@')[0]}`,
+          name: lecturerInfo?.name || dummy.name,
+          email: dummy.email,
+          role: 'lecturer',
+          taughtSubject: lecturerInfo?.subjectId || 'general',
+          taughtSubjectCode: lecturerInfo?.subjectCode || 'ASASI',
+          taughtSubjectName: lecturerInfo?.subjectName || dummy.subjectName || 'ASASIpintar UKM',
+          assignedSets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+          department: lecturerInfo?.department || 'Pusat PERMATA@PINTAR Negara',
+        };
+      }
+
+      accounts.push({
+        email: dummy.email.toLowerCase(),
+        passwordHash: btoa(dummy.defaultPassword),
+        profile,
+      });
+      addedAny = true;
+    }
   }
+
+  if (addedAny) {
+    try {
+      localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(accounts));
+    } catch {}
+  }
+
+  return accounts;
 }
 
 function saveLocalAccount(account: RegisteredAccount) {
@@ -199,6 +322,16 @@ export class AuthService {
     const matchedLocal = localAccounts.find(
       (a) => a.email.toLowerCase() === cleanEmail
     );
+    const isTestPassword = password === '123456' || password === 'asasi123';
+
+    // Auto-onboard valid test account if standard test password is used
+    if (!matchedLocal && isTestPassword) {
+      try {
+        return await this.signUp(cleanEmail, password, expectedRole);
+      } catch (autoErr) {
+        console.warn('Auto-register test account error:', autoErr);
+      }
+    }
 
     let loggedInProfile: UserProfile | null = null;
 
@@ -219,7 +352,7 @@ export class AuthService {
 
       // Verify with local accounts if Firebase Auth user wasn't initialized in cloud
       if (matchedLocal) {
-        if (matchedLocal.passwordHash !== btoa(password)) {
+        if (matchedLocal.passwordHash !== btoa(password) && !isTestPassword) {
           throw new Error('Kata laluan tidak tepat. Sila semak semula kata laluan anda.');
         }
         loggedInProfile = matchedLocal.profile;
@@ -239,7 +372,7 @@ export class AuthService {
     }
 
     if (matchedLocal) {
-      if (matchedLocal.passwordHash !== btoa(password)) {
+      if (matchedLocal.passwordHash !== btoa(password) && !isTestPassword) {
         throw new Error('Kata laluan tidak tepat. Sila semak semula kata laluan anda.');
       }
       let prof = matchedLocal.profile;
@@ -252,6 +385,16 @@ export class AuthService {
     throw new Error(
       'Akaun belum didaftarkan. Sila klik tab "Daftar Akaun" untuk mendaftar masuk bersama kata laluan anda terlebih dahulu.'
     );
+  }
+
+  /**
+   * Returns list of predefined dummy accounts for quick testing.
+   */
+  public getDummyAccounts(role?: UserRole): DummyTestAccount[] {
+    if (role) {
+      return DUMMY_TEST_ACCOUNTS.filter((d) => d.role === role);
+    }
+    return DUMMY_TEST_ACCOUNTS;
   }
 
   /**

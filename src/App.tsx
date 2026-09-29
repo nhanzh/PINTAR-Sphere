@@ -47,6 +47,7 @@ function getInitialPortal(): UserRole {
   const path = window.location.pathname.toLowerCase();
   const search = window.location.search.toLowerCase();
   const hash = window.location.hash.toLowerCase();
+  const savedPortal = localStorage.getItem('pintar_last_portal');
 
   if (
     host.includes('lecturer') ||
@@ -59,6 +60,21 @@ function getInitialPortal(): UserRole {
     hash.includes('lecturer')
   ) {
     return 'lecturer';
+  }
+  if (
+    host.includes('student') ||
+    host.includes('pelajar') ||
+    host.includes('siswa') ||
+    path.includes('student') ||
+    path.includes('pelajar') ||
+    search.includes('portal=student') ||
+    search.includes('role=student') ||
+    hash.includes('student')
+  ) {
+    return 'student';
+  }
+  if (savedPortal === 'lecturer' || savedPortal === 'student') {
+    return savedPortal as UserRole;
   }
   return 'student';
 }
@@ -144,6 +160,8 @@ function AppContent() {
   }, [user]);
 
   const handleLogout = () => {
+    const currentRole = user?.role || portalRole || 'student';
+    localStorage.setItem('pintar_last_portal', currentRole);
     if (user) {
       const roleKey = user.role === 'student' ? 'pintar_active_student' : 'pintar_active_lecturer';
       localStorage.removeItem(roleKey);
@@ -151,6 +169,10 @@ function AppContent() {
     }
     authService.logOut();
     setUser(null);
+    setPortalRole(currentRole);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/${currentRole}`);
+    }
   };
 
   // Subscribe to real-time data from dataService (Firestore + Multi-tab sync + Local storage)
@@ -214,9 +236,11 @@ function AppContent() {
         <div className="flex-1 flex flex-col justify-center">
           <PortalLoginView
             initialPortal={portalRole}
+            lockedPortal={portalRole}
             onLogin={(loggedInUser) => {
               setUser(loggedInUser);
               setPortalRole(loggedInUser.role);
+              localStorage.setItem('pintar_last_portal', loggedInUser.role);
               const roleKey =
                 loggedInUser.role === 'student'
                   ? 'pintar_active_student'

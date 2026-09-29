@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types.ts';
-import { authService } from '../services/authService.ts';
+import { authService, DUMMY_TEST_ACCOUNTS, DummyTestAccount } from '../services/authService.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES } from '../i18n/translations.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
@@ -18,26 +18,67 @@ import {
   Eye,
   EyeOff,
   Info,
+  Sparkles,
 } from 'lucide-react';
 
 interface PortalLoginViewProps {
   onLogin: (user: UserProfile) => void;
   initialPortal?: 'student' | 'lecturer';
+  lockedPortal?: 'student' | 'lecturer';
 }
 
 export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   onLogin,
   initialPortal = 'student',
+  lockedPortal,
 }) => {
   const { lang, setLang, dict } = useLanguage();
-  const [selectedPortal, setSelectedPortal] = useState<'student' | 'lecturer'>(initialPortal);
+  const activePortal = lockedPortal || initialPortal || 'student';
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  useEffect(() => {
-    if (initialPortal) {
-      setSelectedPortal(initialPortal);
+  const dummyStudentAccounts = DUMMY_TEST_ACCOUNTS.filter((d) => d.role === 'student');
+  const dummyLecturerAccounts = DUMMY_TEST_ACCOUNTS.filter((d) => d.role === 'lecturer');
+
+  const handleQuickDemoLogin = async (acc: DummyTestAccount) => {
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    if (acc.role === 'student') {
+      setStudentEmail(acc.email);
+      setStudentPassword(acc.defaultPassword);
+    } else {
+      setLecturerEmail(acc.email);
+      setLecturerPassword(acc.defaultPassword);
     }
-  }, [initialPortal]);
+
+    try {
+      const user = await authService.logIn(acc.email, acc.defaultPassword, acc.role);
+      setSuccessMessage(
+        lang === 'ms'
+          ? `Log masuk berjaya sebagai ${acc.name}!`
+          : `Signed in successfully as ${acc.name}!`
+      );
+      setTimeout(() => {
+        onLogin(user);
+      }, 400);
+    } catch (err: any) {
+      try {
+        const newUser = await authService.signUp(acc.email, acc.defaultPassword, acc.role);
+        setSuccessMessage(
+          lang === 'ms'
+            ? `Log masuk berjaya sebagai ${acc.name}!`
+            : `Signed in successfully as ${acc.name}!`
+        );
+        setTimeout(() => {
+          onLogin(newUser);
+        }, 400);
+      } catch (signupErr: any) {
+        setErrorMessage(signupErr?.message || err?.message || 'Ralat log masuk akaun dummy.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Student auth states (Strictly email + password, NO manual name or set entry)
   const [studentEmail, setStudentEmail] = useState('');
@@ -263,80 +304,45 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
 
       {/* Main Container */}
       <div className="max-w-3xl w-full mx-auto my-auto py-8">
-        {/* Header Notice Banner */}
+        {/* Dedicated Portal Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold mb-3">
             <Building2 className="w-3.5 h-3.5" />
-            <span>{dict.exclusiveNotice}</span>
+            <span>
+              {activePortal === 'student'
+                ? 'Universiti Kebangsaan Malaysia • Program ASASIpintar'
+                : 'Universiti Kebangsaan Malaysia • Pusat PERMATA@PINTAR Negara'}
+            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-            {dict.portalSelection}
+            {activePortal === 'student' ? dict.studentPortal : dict.lecturerPortal}
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 max-w-xl mx-auto leading-relaxed">
-            {dict.portalSelectionDesc}
+            {activePortal === 'student'
+              ? (lang === 'ms'
+                  ? 'Laman Pengesahan Rasmi Pelajar Pra-Universiti ASASIpintar UKM (@siswa.ukm.edu.my)'
+                  : 'Official Authentication Gateway for Enrolled ASASIpintar Students (@siswa.ukm.edu.my)')
+              : (lang === 'ms'
+                  ? 'Laman Pengesahan Rasmi Tenaga Pengajar & Pentadbir ASASIpintar UKM (@ukm.edu.my)'
+                  : 'Official Authentication Gateway for UKM ASASIpintar Faculty Members (@ukm.edu.my)')}
           </p>
         </div>
 
-        {/* Main Portal Selector Buttons (Pelajar vs Pensyarah) */}
-        <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-200/80 dark:bg-slate-800/80 rounded-2xl mb-5 border border-slate-300 dark:border-slate-700 shadow-inner">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedPortal('student');
-              setErrorMessage('');
-              setSuccessMessage('');
-              if (typeof window !== 'undefined') {
-                window.history.replaceState(null, '', '/student');
-              }
-            }}
-            className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
-              selectedPortal === 'student'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-            }`}
-          >
-            <GraduationCap className="w-5 h-5 shrink-0" />
-            <span>{dict.studentPortal}</span>
-            <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-black/20 text-white">/student</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedPortal('lecturer');
-              setErrorMessage('');
-              setSuccessMessage('');
-              if (typeof window !== 'undefined') {
-                window.history.replaceState(null, '', '/lecturer');
-              }
-            }}
-            className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
-              selectedPortal === 'lecturer'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-            }`}
-          >
-            <Shield className="w-5 h-5 shrink-0" />
-            <span>{dict.lecturerPortal}</span>
-            <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-black/20 text-white">/lecturer</span>
-          </button>
-        </div>
-
-        {/* Portal Switching Cards */}
+        {/* Dedicated Portal Authentication Card */}
         <div className="bg-white dark:bg-slate-800/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xl overflow-hidden transition-colors">
           {/* Dedicated Portal Banner Header */}
           <div className={`p-4 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-3 ${
-            selectedPortal === 'student'
+            activePortal === 'student'
               ? 'bg-gradient-to-r from-blue-700 to-indigo-800 text-white'
               : 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white'
           }`}>
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold ${
-                selectedPortal === 'student'
+                activePortal === 'student'
                   ? 'bg-blue-600 text-white'
                   : 'bg-emerald-600 text-white'
               }`}>
-                {selectedPortal === 'student' ? (
+                {activePortal === 'student' ? (
                   <GraduationCap className="w-5 h-5" />
                 ) : (
                   <Shield className="w-5 h-5" />
@@ -344,19 +350,17 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               </div>
               <div>
                 <div className="text-sm font-extrabold text-white">
-                  {selectedPortal === 'student' ? dict.studentPortal : dict.lecturerPortal}
+                  {activePortal === 'student' ? dict.studentPortal : dict.lecturerPortal}
                 </div>
                 <div className="text-[11px] text-white/80">
-                  {selectedPortal === 'student' ? 'Laman Pengesahan Rasmi Pelajar' : 'Laman Pengesahan Rasmi Pensyarah'}
+                  {activePortal === 'student'
+                    ? (lang === 'ms' ? 'Laman Pengesahan Rasmi Pelajar' : 'Official Student Portal')
+                    : (lang === 'ms' ? 'Laman Pengesahan Rasmi Pensyarah' : 'Official Lecturer Portal')}
                 </div>
               </div>
             </div>
-            <div className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-              selectedPortal === 'student'
-                ? 'bg-white/20 text-white border border-white/30'
-                : 'bg-white/20 text-white border border-white/30'
-            }`}>
-              {selectedPortal === 'student' ? '/student' : '/lecturer'}
+            <div className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/20 text-white border border-white/30 font-mono">
+              {activePortal === 'student' ? '/student' : '/lecturer'}
             </div>
           </div>
 
@@ -373,7 +377,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   }}
                   className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     authMode === 'login'
-                      ? selectedPortal === 'student'
+                      ? activePortal === 'student'
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -390,7 +394,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   }}
                   className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     authMode === 'signup'
-                      ? selectedPortal === 'student'
+                      ? activePortal === 'student'
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -416,7 +420,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
               </div>
             )}
 
-            {selectedPortal === 'student' ? (
+            {activePortal === 'student' ? (
               /* STUDENT PORTAL (Strictly Email & Password - Auto Identity Linking) */
               <div className="space-y-6">
                 <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-700/60 pb-4">
@@ -561,6 +565,59 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                     )}
                   </div>
                 </form>
+
+                {/* Fast Dummy Test Accounts for Students */}
+                <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/80">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">
+                        🧪
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {lang === 'ms' ? 'Akaun Dummy Ujian Pelajar' : 'Student Dummy Test Accounts'}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {lang === 'ms'
+                            ? 'Kata laluan rasmi ujian: 123456 • Klik untuk log masuk terus'
+                            : 'Default test password: 123456 • Click to test login immediately'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {dummyStudentAccounts.map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        onClick={() => handleQuickDemoLogin(acc)}
+                        className="p-3 text-left rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 hover:bg-blue-100/80 dark:hover:bg-blue-900/60 transition-all cursor-pointer group shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white font-mono">
+                            Set {acc.setNumber}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-400 font-semibold">
+                            {acc.matricNumber}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          {acc.name.split(' ')[0]} {acc.name.split(' ')[1] || ''}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5">
+                          {acc.email}
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-900/40 text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
+                          <span>K. Laluan: {acc.defaultPassword}</span>
+                          <span className="flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                            Uji Masuk ⚡
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               /* LECTURER PORTAL (Email & Password - Auto Faculty Directory Matching) */
@@ -705,15 +762,73 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                     )}
                   </div>
                 </form>
+
+                {/* Fast Dummy Test Accounts for Lecturers */}
+                <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/80">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                        🧪
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {lang === 'ms' ? 'Akaun Dummy Ujian Pensyarah' : 'Lecturer Dummy Test Accounts'}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {lang === 'ms'
+                            ? 'Kata laluan rasmi ujian: 123456 • Klik untuk log masuk terus'
+                            : 'Default test password: 123456 • Click to test login immediately'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {dummyLecturerAccounts.map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        onClick={() => handleQuickDemoLogin(acc)}
+                        className="p-3 text-left rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/60 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/60 transition-all cursor-pointer group shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white truncate max-w-[200px]">
+                            {acc.subjectName?.split('(')[0] || 'Pensyarah'}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                          {acc.name}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5">
+                          {acc.email}
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-emerald-200/50 dark:border-emerald-900/40 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                          <span>K. Laluan: {acc.defaultPassword}</span>
+                          <span className="flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                            Uji Masuk ⚡
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Security Notice */}
+        {/* Official UKM Security Notice */}
         <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
-          <Lock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-          <span>{dict.switchRoleNotice}</span>
+          <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>
+            {activePortal === 'student'
+              ? (lang === 'ms'
+                  ? 'Laman portal pelajar disahkan khusus untuk 318 pelajar kohort rasmi ASASIpintar UKM.'
+                  : 'Student portal gateway restricted to official 318 ASASIpintar cohort students.')
+              : (lang === 'ms'
+                  ? 'Laman portal pensyarah disahkan khusus untuk 25 emel fakulti rasmi ASASIpintar UKM.'
+                  : 'Lecturer portal gateway restricted to 25 authorized ASASIpintar faculty emails.')}
+          </span>
         </div>
       </div>
 
