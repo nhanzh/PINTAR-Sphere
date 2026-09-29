@@ -27,9 +27,10 @@ import {
   StudentRosterItem,
   BroadcastNotice,
   AppNotification,
+  UserProfile,
 } from '../types.ts';
 import { isWithin24Hours } from '../utils/dateUtils.ts';
-import { getStudentSetNumber } from '../utils/studentUtils.ts';
+import { getStudentSetNumber, isProgramCoordinator } from '../utils/studentUtils.ts';
 import {
   INITIAL_RESOURCES,
   INITIAL_SCHEDULES,
@@ -439,6 +440,8 @@ class DataService {
 
     this.addNotification({
       recipientEmail: 'all',
+      senderEmail: deadline.lecturerEmail,
+      targetSets: deadline.targetSets,
       type: 'deadline_assigned',
       title: 'Tugasan & Tarikh Akhir Baharu',
       message: `${deadline.lecturerName} telah menugaskan "${deadline.title}" (${deadline.subject}) dengan tarikh akhir ${new Date(deadline.dueDate).toLocaleDateString('ms-MY')}.`,
@@ -573,9 +576,11 @@ class DataService {
     const deadlinesList = getLocal<DeadlineItem[]>(KEYS.DEADLINES, []);
     const matchingDeadline = deadlinesList.find((d) => d.id === deadlineId);
 
-    // Notify all lecturers so all faculty can receive and track the submission
+    // Notify the lecturer who assigned the deadline (plus Hub Admin)
     this.addNotification({
-      recipientEmail: 'all',
+      recipientEmail: matchingDeadline?.lecturerEmail || 'all',
+      targetLecturerEmail: matchingDeadline?.lecturerEmail,
+      senderEmail: studentEmail,
       type: 'assignment_submitted',
       title: 'Tugasan Pelajar Dihantar',
       message: `${studentName} (Set ${resolvedSet}) telah menghantar tugasan untuk "${matchingDeadline ? matchingDeadline.title : 'Tugasan'}": ${fileName}.`,
@@ -1785,19 +1790,63 @@ class DataService {
 
   // --- REAL-TIME IN-APP & EMAIL NOTIFICATIONS ---
   public subscribeNotifications(
-    userEmail: string,
+    targetUser: string | UserProfile,
     callback: (notifications: AppNotification[]) => void
   ): () => void {
+    const cleanUserEmail = (typeof targetUser === 'string' ? targetUser : targetUser.email || '').toLowerCase();
+    const userRole = typeof targetUser === 'string' ? undefined : targetUser.role;
+    const isStudentRole = userRole === 'student';
+    const isLecturerRole = userRole === 'lecturer';
+    const isPusatHubAdmin = cleanUserEmail === 'asasipintarhub@gmail.com' || isProgramCoordinator(cleanUserEmail);
+    const studentSet = typeof targetUser === 'string' ? getStudentSetNumber(targetUser) : getStudentSetNumber(targetUser);
+
     const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
     const rawLocal = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+
     const filterUserNotifs = (list: AppNotification[]) =>
-      (list || []).filter(
-        (n) =>
-          !deletedIds.has(n.id) &&
-          (!n.recipientEmail ||
-            n.recipientEmail === 'all' ||
-            n.recipientEmail.toLowerCase() === (userEmail || '').toLowerCase())
-      );
+      (list || []).filter((n) => {
+        if (deletedIds.has(n.id)) return false;
+
+        // Do NOT show notification to the user who created it (e.g. Lecturer uploading material / assignment)
+        if (n.senderEmail && n.senderEmail.toLowerCase() === cleanUserEmail) {
+          return false;
+        }
+
+        // Check explicit recipient email
+        if (n.recipientEmail && n.recipientEmail !== 'all' && n.recipientEmail.toLowerCase() !== cleanUserEmail) {
+          return false;
+        }
+
+        // Student Set Filtering:
+        if (isStudentRole && n.targetSets && n.targetSets.length > 0) {
+          const isTargeted = n.targetSets.some((ts) => {
+            const lowerTs = ts.toLowerCase().trim();
+            return (
+              lowerTs === 'all' ||
+              lowerTs === 'set all' ||
+              lowerTs === `set ${studentSet}` ||
+              lowerTs === String(studentSet)
+            );
+          });
+          if (!isTargeted) return false;
+        }
+
+        // Lecturer Submission Filtering:
+        if (isLecturerRole) {
+          if (n.type === 'assignment_submitted') {
+            if (isPusatHubAdmin) return true;
+            if (
+              n.targetLecturerEmail &&
+              n.targetLecturerEmail.toLowerCase() !== cleanUserEmail &&
+              n.recipientEmail.toLowerCase() !== cleanUserEmail
+            ) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      });
 
     callback(filterUserNotifs(rawLocal));
 
@@ -1940,8 +1989,8 @@ class DataService {
     }
   }
 
-  public subscribeToNotifications(userEmail: string, cb: (n: AppNotification[]) => void) {
-    return this.subscribeNotifications(userEmail, cb);
+  public subscribeToNotifications(targetUser: string | UserProfile, cb: (n: AppNotification[]) => void) {
+    return this.subscribeNotifications(targetUser, cb);
   }
 }
 

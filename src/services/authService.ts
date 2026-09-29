@@ -88,6 +88,22 @@ export const DUMMY_TEST_ACCOUNTS: DummyTestAccount[] = [
     description: 'Pensyarah Kimia I',
     defaultPassword: '123456',
   },
+  {
+    role: 'lecturer',
+    name: 'PM TO\' PUAN DR. TENGKU ELMI AZLINA TENGKU MUDA',
+    email: 'elmiazlina@ukm.edu.my',
+    subjectName: 'Jati Diri (Self-Development) & Citra',
+    description: 'Pensyarah & Penyelaras Jati Diri Kebangsaan',
+    defaultPassword: '123456',
+  },
+  {
+    role: 'lecturer',
+    name: 'MS. SUHAINA BINTI YAAKOB',
+    email: 'suhainaymd@ukm.edu.my',
+    subjectName: 'Jati Diri (Self-Development) & Research Skills',
+    description: 'Pensyarah & Penyelaras Jati Diri Kebangsaan',
+    defaultPassword: '123456',
+  },
 ];
 
 const LOCAL_USERS_KEY = 'pintar_registered_accounts_v1';
@@ -226,7 +242,7 @@ export class AuthService {
       const authorized = findAuthorizedLecturer(cleanEmail);
       if (!authorized) {
         throw new Error(
-          'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan. Hanya 25 emel pensyarah berdaftar sahaja yang dibenarkan.'
+          'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan.'
         );
       }
     }
@@ -312,7 +328,7 @@ export class AuthService {
       const authorized = findAuthorizedLecturer(cleanEmail);
       if (!authorized) {
         throw new Error(
-          'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan. Hanya 25 emel pensyarah berdaftar sahaja yang dibenarkan.'
+          'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan.'
         );
       }
     }

@@ -291,6 +291,9 @@ export interface AppNotification {
   message: string;
   linkTab?: ActiveTab;
   senderName?: string;
+  senderEmail?: string;
+  targetSets?: string[];
+  targetLecturerEmail?: string;
   createdAt: string;
   isRead?: boolean;
 }

@@ -192,11 +192,30 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
     }
   };
 
-  // All lecturers receive and view all student deadlines and submissions
-  const myDeadlines = deadlines;
+  const isPusatHubAdmin = user.email === 'asasipintarhub@gmail.com' || isProgramCoordinator(user.email, user.name);
 
-  // All lecturers receive and view all student submissions
-  const filteredSubmissions = submissions;
+  // Filter deadlines created by this lecturer (Pusat Hub Admin sees all)
+  const myDeadlines = deadlines.filter((dl) => {
+    if (isPusatHubAdmin) return true;
+    const cleanUserEmail = user.email.toLowerCase();
+    const cleanUserName = user.name.toLowerCase();
+    const dlLecturerEmail = (dl.lecturerEmail || '').toLowerCase();
+    const dlLecturerName = (dl.lecturerName || '').toLowerCase();
+
+    return (
+      dlLecturerEmail === cleanUserEmail ||
+      dlLecturerName.includes(cleanUserName) ||
+      cleanUserName.includes(dlLecturerName)
+    );
+  });
+
+  const myDeadlineIds = new Set(myDeadlines.map((dl) => dl.id));
+
+  // Filter student submissions corresponding to deadlines created by this lecturer (Pusat Hub Admin sees all)
+  const filteredSubmissions = submissions.filter((sub) => {
+    if (isPusatHubAdmin) return true;
+    return myDeadlineIds.has(sub.deadlineId);
+  });
 
   // Submissions count
   const totalSubmissions = filteredSubmissions.length;

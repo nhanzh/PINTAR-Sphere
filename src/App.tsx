@@ -201,12 +201,12 @@ function AppContent() {
   // Subscribe to user notifications
   useEffect(() => {
     if (user?.email) {
-      const unsubNotifs = dataService.subscribeToNotifications(user.email, (data) =>
+      const unsubNotifs = dataService.subscribeToNotifications(user, (data) =>
         setNotifications(data)
       );
       return () => unsubNotifs();
     }
-  }, [user?.email]);
+  }, [user]);
 
   // Update private notes when user changes
   useEffect(() => {

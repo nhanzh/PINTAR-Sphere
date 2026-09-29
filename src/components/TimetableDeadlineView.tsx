@@ -147,23 +147,41 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
   const [selectedTargetSets, setSelectedTargetSets] = useState<string[]>(['Set 3']);
   const [isCreatingDeadline, setIsCreatingDeadline] = useState(false);
 
-  // Filter deadlines for student / lecturer - all lecturers receive all student submissions and assignments
+  const isPusatHubAdmin = user.email === 'asasipintarhub@gmail.com' || isProgramCoordinator(user.email, user.name);
+
+  // Filter deadlines for student / lecturer
   const filteredDeadlines = useMemo(() => {
     return deadlines.filter((d) => {
       if (isStudent) {
         return (
           d.targetSets.includes('all') ||
+          d.targetSets.includes('Set all') ||
           d.targetSets.includes(`Set ${studentSet}`) ||
           d.targetSets.some((s) => s.toLowerCase().includes(String(studentSet)))
         );
       }
-      // For lecturers: all lecturers receive and view all deadlines and submissions
-      return true;
+      // For lecturers: Pusat Hub Admin sees all, regular lecturers see deadlines created by them
+      if (isPusatHubAdmin) return true;
+      const cleanEmail = user.email.toLowerCase();
+      const cleanName = user.name.toLowerCase();
+      return (
+        (d.lecturerEmail || '').toLowerCase() === cleanEmail ||
+        (d.lecturerName || '').toLowerCase().includes(cleanName) ||
+        cleanName.includes((d.lecturerName || '').toLowerCase())
+      );
     });
-  }, [deadlines, isStudent, studentSet]);
+  }, [deadlines, isStudent, studentSet, isPusatHubAdmin, user.email, user.name]);
 
-  // All lecturers can view student submissions
-  const filteredSubmissions = submissions;
+  const myDeadlineIds = useMemo(() => new Set(filteredDeadlines.map((d) => d.id)), [filteredDeadlines]);
+
+  // Filter student submissions
+  const filteredSubmissions = useMemo(() => {
+    if (isStudent) {
+      return submissions.filter((s) => s.studentEmail.toLowerCase() === user.email.toLowerCase());
+    }
+    if (isPusatHubAdmin) return submissions;
+    return submissions.filter((s) => myDeadlineIds.has(s.deadlineId));
+  }, [submissions, isStudent, isPusatHubAdmin, user.email, myDeadlineIds]);
 
   // Filter student's class schedules (Set 3 or all)
   const studentSchedules = useMemo(() => {

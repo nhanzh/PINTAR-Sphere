@@ -187,8 +187,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
     if (!authService.isAuthorizedLecturer(email)) {
       setErrorMessage(
         lang === 'ms'
-          ? 'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan. Hanya 25 emel pensyarah berdaftar sahaja yang dibenarkan mengakses portal ini.'
-          : 'Access Denied: This email is not in the authorized ASASIpintar faculty list. Only the 25 official registered emails are allowed.'
+          ? 'Akses Ditolak: Emel ini tidak tersenarai dalam senarai pensyarah rasmi ASASIpintar yang dibenarkan.'
+          : 'Access Denied: This email is not in the authorized ASASIpintar faculty list.'
       );
       return;
     }
@@ -652,7 +652,7 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                         {dict.institutionalEmail}
                       </span>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-                        25 Emel Pensyarah Sah
+                        Emel Pensyarah Sah
                       </span>
                     </label>
                     <input
@@ -826,8 +826,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   ? 'Laman portal pelajar disahkan khusus untuk 318 pelajar kohort rasmi ASASIpintar UKM.'
                   : 'Student portal gateway restricted to official 318 ASASIpintar cohort students.')
               : (lang === 'ms'
-                  ? 'Laman portal pensyarah disahkan khusus untuk 25 emel fakulti rasmi ASASIpintar UKM.'
-                  : 'Lecturer portal gateway restricted to 25 authorized ASASIpintar faculty emails.')}
+                  ? 'Laman portal pensyarah disahkan khusus untuk emel fakulti rasmi ASASIpintar UKM.'
+                  : 'Lecturer portal gateway restricted to authorized ASASIpintar faculty emails.')}
           </span>
         </div>
       </div>
