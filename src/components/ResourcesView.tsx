@@ -5,6 +5,7 @@ import { getSubjectDisplayName } from '../utils/subjectNames.ts';
 import { dataService } from '../services/dataService.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import { MaterialUploadModal } from './MaterialUploadModal.tsx';
+import { isProgramCoordinator } from '../utils/studentUtils.ts';
 import {
   BookOpen,
   Download,
@@ -33,15 +34,16 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
   const { dict } = useLanguage();
   const isStudent = user.role === 'student';
   const studentSet = user.setNumber || 3;
+  const isAdminHub = isProgramCoordinator(user.email, user.name);
 
   // Default to lecturer's taught subject or first subject (Kimia I)
+  const lecturerSubject = SUBJECTS.find((s) => s.id === user.taughtSubject || s.code === user.taughtSubjectCode) || SUBJECTS[0];
   const defaultSubjectId = useMemo(() => {
     if (user.role === 'lecturer') {
-      const match = SUBJECTS.find((s) => s.id === user.taughtSubject || s.code === user.taughtSubjectCode);
-      if (match) return match.id;
+      return lecturerSubject.id;
     }
     return SUBJECTS[0].id;
-  }, [user.role, user.taughtSubject, user.taughtSubjectCode]);
+  }, [user.role, lecturerSubject.id]);
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(defaultSubjectId);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -60,10 +62,17 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
       if (!isTargeted) return false;
     }
 
-    // Filter strictly by active subject
-    const subject = SUBJECTS.find((s) => s.id === selectedSubjectId);
-    if (subject && res.courseCode !== subject.code) {
-      return false;
+    // For non-admin lecturers, only show materials matching their taught subject code
+    if (!isStudent && user.role === 'lecturer' && !isAdminHub) {
+      if (res.courseCode !== lecturerSubject.code) {
+        return false;
+      }
+    } else {
+      // Filter strictly by active subject
+      const subject = SUBJECTS.find((s) => s.id === selectedSubjectId);
+      if (subject && res.courseCode !== subject.code) {
+        return false;
+      }
     }
 
     // Filter by category
@@ -146,34 +155,36 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
         )}
       </div>
 
-      {/* 8 Subjects Horizontal Filter Bar */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-          {dict.subjectFilterLabel || dict.filterSubject}
-        </label>
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {SUBJECTS.map((sub) => (
-            <button
-              key={sub.id}
-              onClick={() => setSelectedSubjectId(sub.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                selectedSubjectId === sub.id
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              <span>{getSubjectDisplayName(sub.code, dict.lang || 'ms')}</span>
-              <span
-                className={`text-[10px] px-1 rounded ${
-                  selectedSubjectId === sub.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+      {/* 8 Subjects Horizontal Filter Bar (Only for Students) */}
+      {isStudent && (
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+            {dict.subjectFilterLabel || dict.filterSubject}
+          </label>
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {SUBJECTS.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => setSelectedSubjectId(sub.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                  selectedSubjectId === sub.id
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                {sub.code}
-              </span>
-            </button>
-          ))}
+                <span>{getSubjectDisplayName(sub.code, dict.lang || 'ms')}</span>
+                <span
+                  className={`text-[10px] px-1 rounded ${
+                    selectedSubjectId === sub.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {sub.code}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search and Category Filter Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">

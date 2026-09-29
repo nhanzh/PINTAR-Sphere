@@ -32,6 +32,9 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
     if (lang === 'zh') {
       return `Hello ${user.name} 我是 UKM ASASIpintar 的 PINTAR AI Mentor。请问今天有什么可以帮您的？`;
     }
+    if (lang === 'ta') {
+      return `Hello ${user.name} நான் UKM ASASIpintar-இன் PINTAR AI Mentor. இன்று உங்களுக்கு நான் எவ்வாறு உதவ முடியும்?`;
+    }
     return `Hello ${user.name} I am your PINTAR AI Mentor for UKM ASASIpintar. How can I help you today?`;
   };
 
@@ -55,6 +58,21 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // Update initial message if lang changes and user hasn't started conversation yet
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].sender === 'assistant') {
+        return [
+          {
+            ...prev[0],
+            text: getInitialGreeting(),
+          },
+        ];
+      }
+      return prev;
+    });
+  }, [lang]);
 
   useEffect(() => {
     if (initialPrompt) {
@@ -105,14 +123,13 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       const aiReply: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'assistant',
-        text: data.reply || (lang === 'zh' ? '这是根据您的提问逐步解答的学术方案。' : lang === 'ms' ? 'Berikut ialah penyelesaian akademik langkah demi langkah untuk pertanyaan anda.' : 'Here is the step-by-step academic explanation for your query.'),
+        text: data.reply || (lang === 'zh' ? '这是根据您的提问逐步解答的学术方案。' : lang === 'ta' ? 'உங்கள் கேள்விக்கான படிப்படியான கல்வி விளக்கம் இதோ.' : lang === 'ms' ? 'Berikut ialah penyelesaian akademik langkah demi langkah untuk pertanyaan anda.' : 'Here is the step-by-step academic explanation for your query.'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, aiReply]);
     } catch (err) {
       console.warn('AI Chat API fallback:', err);
-      // Helpful contextual academic fallback in requested language
       let fallbackText = '';
       if (lang === 'zh') {
         fallbackText = `### 学术解答总结：
@@ -123,6 +140,15 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
    - 物理 (PNAP0123)：简谐运动周期 $T = 2\\pi \\sqrt{\\frac{m}{k}}$。
    - 统计学 (PNAP0154)：使用 $Z = \\frac{X - \\mu}{\\sigma}$ 计算标准分。
 3. **第一学期 GPA 准则**：仅 **成绩最高的2门理科 + 统计学** 计算入官方 GPA，请重点把握优势科目！`;
+      } else if (lang === 'ta') {
+        fallbackText = `### கல்வி தீர்வு சுருக்கம்:
+அதிகாரப்பூர்வ விளக்கம் இதோ:
+1. **முக்கிய கருத்து**: ASASIpintar படிப்புகளுக்கு சூத்திரங்களைப் பயன்படுத்துவதற்கு முன் அடிப்படை வரையறைகளைக் குறிப்பிடவும்.
+2. **சூத்திர பயன்பாடு**:
+   - வேதியியல் (PNAP0133): $K_c = \\frac{[\\text{விளைபொருட்கள்}]^p}{[\\text{வினைபடு பொருட்கள்}]^r}$.
+   - இயற்பியல் (PNAP0123): எளிய சீரிசை இயக்க அலைவு காலம் $T = 2\\pi \\sqrt{\\frac{m}{k}}$.
+   - புள்ளியியல் (PNAP0154): இசட் மதிப்பெண் $Z = \\frac{X - \\mu}{\\sigma}$.
+3. **செமஸ்டர் 1 GPA விதி**: உங்கள் **2 சிறந்த அறிவியல் + புள்ளியியல்** மட்டுமே அதிகாரப்பூர்வ GPA-வில் கணக்கிடப்படும்!`;
       } else if (lang === 'ms') {
         fallbackText = `### Ringkasan Penyelesaian Akademik:
 Berikut merupakan panduan rasmi:
@@ -161,6 +187,13 @@ Here is the official breakdown:
         '解释化学 I 中如何使用 ICE 表计算平衡常数 Kc',
         '推导物理 I 中弹簧振子的周期公式',
         '提供一道标准正态分布 Z 值的练习题',
+      ]
+    : lang === 'ta'
+    ? [
+        'செமஸ்டர் 1 2 சிறந்த அறிவியல் GPA விதி எவ்வாறு கணக்கிடப்படுகிறது?',
+        'வேதியியல் I-ல் ICE அட்டவணை மூலம் Kc கணக்கிடுவதை விளக்குக',
+        'இயற்பியல் I-ல் நிறை-சுருள்வில் அமைப்பின் அலைவு நேரத்தை பெறுக',
+        'நிலையான இயல்புநிலை பரவல் Z-மதிப்பெண் பயிற்சி கணக்கு தருக',
       ]
     : lang === 'ms'
     ? [

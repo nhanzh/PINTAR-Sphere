@@ -288,9 +288,10 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
             />
           </div>
           <div>
-            <div className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-              PINTAR<span className="text-indigo-400">@Sphere</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+            <div className="text-base font-extrabold tracking-tight flex items-center gap-1.5">
+              <span className="text-black bg-white px-1.5 py-0.5 rounded font-black">PINTAR</span>
+              <span className="text-red-500 font-extrabold">@Sphere</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-400/30">
                 UKM
               </span>
             </div>
@@ -1012,8 +1013,10 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
 
       {/* Footer */}
       <footer className="text-center text-xs text-slate-400 py-3 border-t border-slate-800/80">
-        <div>
-          PINTAR@Sphere © {new Date().getFullYear()} • Universiti Kebangsaan Malaysia (UKM)
+        <div className="flex items-center justify-center gap-1">
+          <span className="text-black bg-white px-1 rounded font-bold text-[10px]">PINTAR</span>
+          <span className="text-red-500 font-bold text-[10px]">@Sphere</span>
+          <span>© {new Date().getFullYear()} • Universiti Kebangsaan Malaysia (UKM)</span>
         </div>
         <div className="text-[11px] text-slate-400 mt-0.5">
           Program ASASIpintar • Universiti Kebangsaan Malaysia (UKM)

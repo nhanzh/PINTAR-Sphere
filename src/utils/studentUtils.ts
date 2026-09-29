@@ -84,8 +84,31 @@ export function formatStudentSet(identifier?: any): string {
 }
 
 /**
+ * Checks if the user is Penyelaras ASASIpintar / Admin Hub (overall program coordinator)
+ * Penyelaras ASASIpintar has full administrative access to both koko applications and jati diri marks.
+ */
+export function isProgramCoordinator(email?: string, name?: string): boolean {
+  if (!email && !name) return false;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanName = (name || '').toLowerCase().trim();
+
+  return (
+    cleanEmail === 'asasipintarhub@gmail.com' ||
+    cleanEmail.includes('admin') ||
+    cleanEmail.includes('nurulhaidah') ||
+    cleanEmail.includes('penyelaras') ||
+    cleanName.includes('nurulhaidah') ||
+    cleanName.includes('penyelaras asasi') ||
+    cleanName.includes('admin hub') ||
+    cleanName.includes('pusat asasipintar') ||
+    cleanName.includes('admin')
+  );
+}
+
+/**
  * Checks if the lecturer is Dr. Mona (Penyelaras Kokurikulum)
- * Only Dr. Mona has the official authority to review, approve, or reject student koko submissions.
+ * Dr. Mona can access and review Koko applications/activities (Penyertaan, Pencapaian, Perjawatan),
+ * BUT CANNOT access Jati Diri marks.
  */
 export function isKokoCoordinator(email?: string, name?: string): boolean {
   if (!email && !name) return false;
@@ -95,8 +118,73 @@ export function isKokoCoordinator(email?: string, name?: string): boolean {
   return (
     cleanEmail === 'monafatin@ukm.edu.my' ||
     cleanEmail.includes('monafatin') ||
-    cleanEmail === 'asasipintarhub@gmail.com' ||
-    cleanName.includes('mona fatin')
+    cleanName.includes('mona fatin') ||
+    cleanName.includes('dr. mona') ||
+    cleanName.includes('dr mona')
+  );
+}
+
+/**
+ * Checks if the lecturer is Dr. Elmi or Puan Suhaina (Penyelaras Jati Diri Kebangsaan)
+ * Dr. Elmi and Puan Suhaina can access Jati Diri marks ONLY,
+ * and have NO access to Koko applications/review.
+ */
+export function isJatiDiriCoordinator(email?: string, name?: string): boolean {
+  if (!email && !name) return false;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanName = (name || '').toLowerCase().trim();
+
+  return (
+    cleanEmail === 'elmiazlina@ukm.edu.my' ||
+    cleanEmail.includes('elmiazlina') ||
+    cleanEmail === 'suhainaymd@ukm.edu.my' ||
+    cleanEmail.includes('suhainaymd') ||
+    cleanName.includes('elmi') ||
+    cleanName.includes('tengku elmi') ||
+    cleanName.includes('suhaina')
+  );
+}
+
+/**
+ * Who can access Koko Applications (Permohonan / Semakan Aktiviti Koko):
+ * - Students (to submit & view own)
+ * - Penyelaras ASASIpintar
+ * - Dr. Mona
+ * (Dr. Elmi, Puan Suhaina, and other lecturers DO NOT have access)
+ */
+export function canAccessKokoApplications(email?: string, name?: string, role?: string): boolean {
+  if (role === 'student') return true;
+  return isProgramCoordinator(email, name) || isKokoCoordinator(email, name);
+}
+
+/**
+ * Who can access Jati Diri Marks (Markah Jati Diri):
+ * - Students (view own published result)
+ * - Penyelaras ASASIpintar
+ * - Dr. Elmi
+ * - Puan Suhaina
+ * (Dr. Mona and other lecturers DO NOT have access)
+ */
+export function canAccessJatiDiriMarks(email?: string, name?: string, role?: string): boolean {
+  if (role === 'student') return true;
+  return isProgramCoordinator(email, name) || isJatiDiriCoordinator(email, name);
+}
+
+/**
+ * Who can see the Koko & Jati Diri Tab in Navigation / Sidebar:
+ * - Students
+ * - Penyelaras ASASIpintar
+ * - Dr. Mona
+ * - Dr. Elmi
+ * - Puan Suhaina
+ * (Other lecturers DO NOT have access to this module)
+ */
+export function canAccessKokoModule(email?: string, name?: string, role?: string): boolean {
+  if (role === 'student') return true;
+  return (
+    isProgramCoordinator(email, name) ||
+    isKokoCoordinator(email, name) ||
+    isJatiDiriCoordinator(email, name)
   );
 }
 

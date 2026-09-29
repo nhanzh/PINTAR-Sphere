@@ -40,13 +40,21 @@ import {
   Check,
   FileText,
   MapPin,
+  Shield,
 } from 'lucide-react';
 import { ResourceItem } from '../types.ts';
 import { dataService } from '../services/dataService.ts';
 import { MaterialUploadModal } from './MaterialUploadModal.tsx';
 import { calculateSuggestedKokoScore } from '../utils/kokoScoring.ts';
 import { openOrDownloadSubmissionFile } from '../utils/fileUtils.ts';
-import { getStudentSetNumber, isKokoCoordinator } from '../utils/studentUtils.ts';
+import {
+  getStudentSetNumber,
+  isKokoCoordinator,
+  canAccessKokoApplications,
+  canAccessJatiDiriMarks,
+  isJatiDiriCoordinator,
+  isProgramCoordinator,
+} from '../utils/studentUtils.ts';
 
 interface LecturerDashboardViewProps {
   user: UserProfile;
@@ -94,7 +102,9 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
 
   const subjectName = user.taughtSubjectName || 'Chemistry I';
   const subjectCode = user.taughtSubjectCode || 'PNAP0133';
-  const isDrMona = isKokoCoordinator(user.email, user.name);
+  const canKoko = canAccessKokoApplications(user.email, user.name, user.role);
+  const canJatiDiri = canAccessJatiDiriMarks(user.email, user.name, user.role);
+  const isJatiDiriLecturer = isJatiDiriCoordinator(user.email, user.name);
 
   // Real-time subscribe to Koko Submissions
   useEffect(() => {
@@ -158,16 +168,24 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
     }
   };
 
-  // Filter deadlines created for this subject
-  const myDeadlines = deadlines.filter(
-    (d) =>
-      d.subject.toLowerCase().includes(subjectName.toLowerCase()) ||
-      d.courseCode === subjectCode
-  );
+  const isAdminHub = isProgramCoordinator(user.email, user.name);
+
+  // Filter deadlines so other lecturers cannot see them, but Admin Hub can see all
+  const myDeadlines = deadlines.filter((d) => {
+    if (isAdminHub) return true;
+    return d.lecturerEmail === user.email;
+  });
+
+  // Filter submissions so only those for deadlines created by this lecturer (or all if Admin Hub) are shown
+  const filteredSubmissions = React.useMemo(() => {
+    if (isAdminHub) return submissions;
+    const myDeadlineIds = new Set(myDeadlines.map((d) => d.id));
+    return submissions.filter((s) => myDeadlineIds.has(s.deadlineId));
+  }, [submissions, myDeadlines, isAdminHub]);
 
   // Submissions count
-  const totalSubmissions = submissions.length;
-  const lateSubmissions = submissions.filter((s) => s.status === 'Late').length;
+  const totalSubmissions = filteredSubmissions.length;
+  const lateSubmissions = filteredSubmissions.filter((s) => s.status === 'Late').length;
 
   return (
     <div className="space-y-6">
@@ -323,8 +341,8 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Columns: Deadlines Tracking & Submissions Feed */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Real-Time Student Co-Curricular Verification Cards (Lecturer Review - Only Dr Mona & Penyelaras ASASIpintar) */}
-          {isDrMona && (
+          {/* Real-Time Student Co-Curricular Verification Cards (Only Dr Mona & Penyelaras ASASIpintar) */}
+          {canKoko && (
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-300/80 dark:border-amber-800/80 p-5 shadow-xs transition-colors space-y-4">
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -484,6 +502,55 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
           </div>
           )}
 
+          {/* Jati Diri Management Quick Widget (For Dr. Elmi & Puan Suhaina) */}
+          {canJatiDiri && !canKoko && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-300/80 dark:border-indigo-800/80 p-5 shadow-xs transition-colors space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                    <Shield className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Pengurusan Gred Pembangunan Jati Diri &amp; Kebangsaan</span>
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-900 dark:text-indigo-300 text-[11px] font-extrabold">
+                        Wajaran 7.00%
+                      </span>
+                    </h2>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Penetapan gred sahsiah dan pembangunan jati diri 318 pelajar bagi semua 11 Set ASASIpintar.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('koko')}
+                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer shrink-0"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Buka Gred Jati Diri</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Peranan Rasmi</div>
+                  <div className="font-extrabold text-slate-900 dark:text-white">Penyelaras Jati Diri</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Skop Pelajar</div>
+                  <div className="font-extrabold text-slate-900 dark:text-white">318 Pelajar (Set 1 - 11)</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Format Penilaian</div>
+                  <div className="font-extrabold text-indigo-600 dark:text-indigo-400">Skala Gred A+ hingga E</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Course Learning Materials & Files Manager (Lecturer Dashboard) */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-colors">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
@@ -626,7 +693,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
 
             <div className="mt-4 space-y-3">
               {myDeadlines.map((dl) => {
-                const subCount = submissions.filter((s) => s.deadlineId === dl.id).length;
+                const subCount = filteredSubmissions.filter((s) => s.deadlineId === dl.id).length;
                 const dueDate = new Date(dl.dueDate);
                 return (
                   <div
@@ -714,14 +781,14 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {submissions.length === 0 ? (
+                  {filteredSubmissions.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-6 text-center text-slate-400 dark:text-slate-500 italic">
                         Tiada penyerahan tugasan pelajar buat masa ini.
                       </td>
                     </tr>
                   ) : (
-                    submissions.slice(0, 10).map((sub) => {
+                    filteredSubmissions.slice(0, 10).map((sub) => {
                       const subTime = new Date(sub.submittedAt);
                       return (
                         <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">

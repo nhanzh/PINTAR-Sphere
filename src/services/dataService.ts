@@ -560,11 +560,15 @@ class DataService {
       console.warn('Firestore submitWork sync error:', err);
     }
 
+    const deadlinesList = getLocal<DeadlineItem[]>(KEYS.DEADLINES, []);
+    const matchingDeadline = deadlinesList.find((d) => d.id === deadlineId);
+    const lecturerEmail = matchingDeadline ? matchingDeadline.lecturerEmail : 'all';
+
     this.addNotification({
-      recipientEmail: 'all',
+      recipientEmail: lecturerEmail,
       type: 'assignment_submitted',
       title: 'Tugasan Pelajar Dihantar',
-      message: `${studentName} (${studentEmail}) telah menghantar tugasan: ${fileName}.`,
+      message: `${studentName} (Set ${resolvedSet}) telah menghantar tugasan untuk "${matchingDeadline ? matchingDeadline.title : 'Tugasan'}": ${fileName}.`,
       linkTab: 'timetable',
       senderName: studentName,
     });
@@ -1047,12 +1051,19 @@ class DataService {
       const existingKoko = existingKokoList.find(
         (k) => k.studentEmail.toLowerCase() === target.studentEmail.toLowerCase()
       );
-      const jatiDiriScore = existingKoko?.jatiDiriScore ?? 7.0;
+      const jatiDiriScore = existingKoko?.jatiDiriScore ?? null;
       const kokoActivitiesTotal = Math.min(3.0, Math.round((partScore + achScore + posScore) * 1000) / 1000);
-      const totalKoko10 = Math.min(10.0, Math.round((jatiDiriScore + kokoActivitiesTotal) * 1000) / 1000);
+      const hasJatiDiri = jatiDiriScore !== null && jatiDiriScore !== undefined && Number(jatiDiriScore) > 0;
+      const totalKoko10 = hasJatiDiri || kokoActivitiesTotal > 0
+        ? Math.min(10.0, Math.round(((hasJatiDiri ? Number(jatiDiriScore) : 0) + kokoActivitiesTotal) * 1000) / 1000)
+        : (null as any);
 
-      const grade = totalKoko10 >= 8.0 ? 'A' : totalKoko10 >= 7.0 ? 'A-' : totalKoko10 >= 6.0 ? 'B+' : 'B';
-      const band = totalKoko10 >= 8.0 ? 'Band 1' : totalKoko10 >= 6.0 ? 'Band 2' : 'Band 3';
+      const grade = totalKoko10 !== null
+        ? (totalKoko10 >= 8.0 ? 'A' : totalKoko10 >= 7.0 ? 'A-' : totalKoko10 >= 6.0 ? 'B+' : 'B')
+        : (null as any);
+      const band = totalKoko10 !== null
+        ? (totalKoko10 >= 8.0 ? 'Band 1' : totalKoko10 >= 6.0 ? 'Band 2' : 'Band 3')
+        : (null as any);
 
       const newRecord: StudentKokoRecord = {
         id: existingKoko ? existingKoko.id : `koko-${Date.now()}-${target.matricNumber.toLowerCase()}`,
@@ -1112,20 +1123,24 @@ class DataService {
         (k) => k.studentEmail.toLowerCase() === target.studentEmail.toLowerCase()
       );
       if (existingKoko) {
-        const jatiDiriScore = existingKoko.jatiDiriScore ?? 7.0;
+        const jatiDiriScore = existingKoko.jatiDiriScore ?? null;
         const kokoActivitiesTotal = Math.min(3.0, Math.round((partScore + achScore + posScore) * 1000) / 1000);
-        const totalKoko10 = Math.min(10.0, Math.round((jatiDiriScore + kokoActivitiesTotal) * 1000) / 1000);
+        const hasJatiDiri = jatiDiriScore !== null && jatiDiriScore !== undefined && Number(jatiDiriScore) > 0;
+        const totalKoko10 = hasJatiDiri || kokoActivitiesTotal > 0
+          ? Math.min(10.0, Math.round(((hasJatiDiri ? Number(jatiDiriScore) : 0) + kokoActivitiesTotal) * 1000) / 1000)
+          : (null as any);
 
         const newRecord: StudentKokoRecord = {
           ...existingKoko,
+          jatiDiriScore,
           kokoParticipation: partScore,
           kokoAchievement: achScore,
           kokoPosition: posScore,
           kokoActivitiesTotal,
           totalKoko10,
-          totalScore: Number((totalKoko10 * 10).toFixed(1)),
-          grade: totalKoko10 >= 8.0 ? 'A' : totalKoko10 >= 7.0 ? 'A-' : totalKoko10 >= 6.0 ? 'B+' : 'B',
-          band: totalKoko10 >= 8.0 ? 'Band 1' : 'Band 2',
+          totalScore: totalKoko10 !== null ? Number((totalKoko10 * 10).toFixed(1)) : (null as any),
+          grade: totalKoko10 !== null ? (totalKoko10 >= 8.0 ? 'A' : totalKoko10 >= 7.0 ? 'A-' : totalKoko10 >= 6.0 ? 'B+' : 'B') : (null as any),
+          band: totalKoko10 !== null ? (totalKoko10 >= 8.0 ? 'Band 1' : 'Band 2') : (null as any),
           updatedAt: new Date().toISOString(),
         };
         await this.saveStudentKoko(newRecord);
@@ -1136,20 +1151,33 @@ class DataService {
   public async resetJatiDiriScore(studentEmail: string, reviewerName: string = 'Pensyarah'): Promise<void> {
     const current = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
     const target = current.find((k) => k.studentEmail.toLowerCase() === studentEmail.toLowerCase());
-    if (!target) return;
 
-    const part = target.kokoParticipation ?? 0;
-    const ach = target.kokoAchievement ?? 0;
-    const pos = target.kokoPosition ?? 0;
+    const studentInfo = target || this.findStudentByEmail(studentEmail);
+    const setNumber = target?.setNumber || (studentInfo as any)?.setNumber || 3;
+    const studentName = target?.studentName || (studentInfo as any)?.name || 'Pelajar';
+    const matricNumber = target?.matricNumber || (studentInfo as any)?.matricNumber || '';
+
+    const part = target?.kokoParticipation ?? 0;
+    const ach = target?.kokoAchievement ?? 0;
+    const pos = target?.kokoPosition ?? 0;
     const kokoActivitiesTotal = Math.min(3.0, Math.round((part + ach + pos) * 1000) / 1000);
 
     const updatedRecord: StudentKokoRecord = {
-      ...target,
-      jatiDiriScore: 0,
-      totalKoko10: kokoActivitiesTotal,
-      totalScore: Number((kokoActivitiesTotal * 10).toFixed(1)),
-      grade: kokoActivitiesTotal >= 8.0 ? 'A' : kokoActivitiesTotal >= 7.0 ? 'A-' : kokoActivitiesTotal >= 6.0 ? 'B+' : 'B',
-      band: kokoActivitiesTotal >= 8.0 ? 'Band 1' : 'Band 2',
+      id: target?.id || `koko-rec-${studentEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+      studentEmail: studentEmail.toLowerCase(),
+      studentName: studentName,
+      matricNumber: matricNumber,
+      setNumber: setNumber,
+      kokoParticipation: part,
+      kokoAchievement: ach,
+      kokoPosition: pos,
+      kokoActivitiesTotal: kokoActivitiesTotal,
+      jatiDiriScore: null as any,
+      totalKoko10: kokoActivitiesTotal > 0 ? kokoActivitiesTotal : (null as any),
+      totalScore: kokoActivitiesTotal > 0 ? Number((kokoActivitiesTotal * 10).toFixed(1)) : (null as any),
+      grade: kokoActivitiesTotal >= 8.0 ? 'A' : kokoActivitiesTotal >= 7.0 ? 'A-' : kokoActivitiesTotal >= 6.0 ? 'B+' : (null as any),
+      band: kokoActivitiesTotal >= 8.0 ? 'Band 1' : (null as any),
+      isPublished: true,
       updatedBy: reviewerName,
       updatedAt: new Date().toISOString(),
     };

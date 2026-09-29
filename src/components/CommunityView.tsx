@@ -58,6 +58,8 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [replyToDelete, setReplyToDelete] = useState<{ postId: string; replyId: string } | null>(null);
 
   // Reply state
   const [activeReplyPostId, setActiveReplyPostId] = useState<string | null>(null);
@@ -75,10 +77,6 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   const [localPosts, setLocalPosts] = useState<ForumPost[]>(posts);
 
   useEffect(() => {
-    setLocalPosts(posts);
-  }, [posts]);
-
-  useEffect(() => {
     const unsub = dataService.subscribeForumPosts((updatedData) => {
       setLocalPosts(updatedData);
     });
@@ -92,12 +90,54 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
       alert('Maaf, fail ini tidak mempunyai URL muat turun yang sah.');
       return;
     }
+
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = fileName || 'lampiran-komuniti-asasipintar';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    if (url.startsWith('data:')) {
+      try {
+        const arr = url.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName || 'lampiran-komuniti-asasipintar';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        return;
+      } catch (err) {
+        console.error('Failed to construct secure download URL:', err);
+      }
+    }
+
+    const blob = new Blob([url], { type: 'text/plain;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName || 'lampiran-komuniti-asasipintar';
+    link.href = blobUrl;
+    link.download = fileName || 'dokumen-komuniti.txt';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   };
 
   const filteredPosts = localPosts.filter((p) => {
@@ -177,25 +217,35 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (window.confirm('Adakah anda pasti mahu memadam topik perbincangan ini?')) {
-      setLocalPosts((prev) => prev.filter((p) => p.id !== postId));
-      await dataService.deletePost(postId);
-      if (onRefreshData) onRefreshData();
-    }
+    setPostToDelete(postId);
   };
 
-  const handleDeleteReply = async (postId: string, replyId: string) => {
-    if (window.confirm('Adakah anda pasti mahu memadam balasan ini?')) {
-      setLocalPosts((prev) =>
-        prev.map((p) => {
-          if (p.id !== postId) return p;
-          const comments = (p.comments || p.replies || []).filter((c) => c.id !== replyId);
-          return { ...p, comments, replies: comments };
-        })
-      );
-      await dataService.deleteReplyFromPost(postId, replyId);
-      if (onRefreshData) onRefreshData();
-    }
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+    const postId = postToDelete;
+    setLocalPosts((prev) => prev.filter((p) => p.id !== postId));
+    await dataService.deletePost(postId);
+    setPostToDelete(null);
+    if (onRefreshData) onRefreshData();
+  };
+
+  const handleDeleteReply = (postId: string, replyId: string) => {
+    setReplyToDelete({ postId, replyId });
+  };
+
+  const confirmDeleteReply = async () => {
+    if (!replyToDelete) return;
+    const { postId, replyId } = replyToDelete;
+    setLocalPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const comments = (p.comments || p.replies || []).filter((c) => c.id !== replyId);
+        return { ...p, comments, replies: comments };
+      })
+    );
+    await dataService.deleteReplyFromPost(postId, replyId);
+    setReplyToDelete(null);
+    if (onRefreshData) onRefreshData();
   };
 
   const handleSaveEditReply = async (postId: string, replyId: string) => {
@@ -1011,6 +1061,72 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE THREAD CONFIRMATION MODAL */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-200 dark:border-rose-900 animate-in fade-in zoom-in-95 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Padam Topik Perbincangan?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Adakah anda pasti mahu memadam topik perbincangan ini secara kekal? Tindakan ini tidak boleh ditarik balik.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePost}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Ya, Padam Topik
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE REPLY CONFIRMATION MODAL */}
+      {replyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-200 dark:border-rose-900 animate-in fade-in zoom-in-95 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Padam Balasan Ini?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Adakah anda pasti mahu memadam balasan perbincangan ini?
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setReplyToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteReply}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Ya, Padam Balasan
+              </button>
+            </div>
           </div>
         </div>
       )}

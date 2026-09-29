@@ -3,7 +3,7 @@ import { UserProfile, ActiveTab, UserRole } from '../types.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import { SUPPORTED_LANGUAGES, Language } from '../i18n/translations.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
-import { getStudentSetNumber, isKokoCoordinator } from '../utils/studentUtils.ts';
+import { getStudentSetNumber, isKokoCoordinator, canAccessJatiDiriMarks, canAccessKokoModule } from '../utils/studentUtils.ts';
 import { OFFICIAL_318_STUDENTS_ROSTER } from '../data/officialStudentRoster.ts';
 import { AUTHORIZED_LECTURERS } from '../data/authorizedLecturers.ts';
 import { authService } from '../services/authService.ts';
@@ -29,6 +29,7 @@ import {
   Search,
   Zap,
   X,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 import { AppNotification } from '../types.ts';
@@ -111,10 +112,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    PINTAR<span className="text-indigo-600 dark:text-indigo-400">@Sphere</span>
+                  <span className="text-base font-extrabold text-black dark:text-white tracking-tight">
+                    PINTAR<span className="text-red-600 dark:text-red-500 font-extrabold">@Sphere</span>
                   </span>
-                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200/60 dark:border-red-800/60">
                     ASASIpintar
                   </span>
                 </div>
@@ -353,136 +354,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Top Main Navigation Bar (Student & Lecturer Controls) */}
-      <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 overflow-x-auto scrollbar-none transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center space-x-1 py-1.5 text-xs font-semibold whitespace-nowrap">
-            {/* Dashboard Overview */}
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'dashboard'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>{dict.tabOverview}</span>
-            </button>
 
-            {/* Learning Resources */}
-            <button
-              onClick={() => setActiveTab('resources')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'resources'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>{dict.tabResources}</span>
-            </button>
-
-            {/* Academic Calendar */}
-            <button
-              onClick={() => setActiveTab('calendar')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'calendar'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{dict.tabCalendar}</span>
-              {rescheduleAlertCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-              )}
-            </button>
-
-            {/* Timetable & Deadlines */}
-            <button
-              onClick={() => setActiveTab('timetable')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'timetable'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>{dict.tabTimetable}</span>
-            </button>
-
-            {/* GPA Calculator / Grade Entry */}
-            <button
-              onClick={() => setActiveTab('gpa')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'gpa'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <Calculator className="w-3.5 h-3.5" />
-              <span>{dict.tabGpa}</span>
-            </button>
-
-            {/* Koko Marks & Verification (For Student and Koko Coordinators Only) */}
-            {(isStudent || isKokoCoordinator(user.email, user.name)) && (
-              <button
-                onClick={() => setActiveTab('koko')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'koko'
-                    ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>{isStudent ? (dict.tabKoko || 'Markah Kokurikulum') : 'Pengesahan Kokurikulum'}</span>
-              </button>
-            )}
-
-            {/* Student Roster (for Lecturer) */}
-            {!isStudent && (
-              <button
-                onClick={() => setActiveTab('students-roster')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'students-roster'
-                    ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>{dict.tabRoster}</span>
-              </button>
-            )}
-
-            {/* Community Portal */}
-            <button
-              onClick={() => setActiveTab('community')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'community'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{dict.tabCommunity}</span>
-            </button>
-
-            {/* AI Assistant */}
-            <button
-              onClick={() => setActiveTab('ai-assistant')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'ai-assistant'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xs font-bold'
-                  : 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/60 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{dict.tabAiMentor}</span>
-            </button>
-          </nav>
-        </div>
-      </div>
 
       {/* QUICK TEST SWITCHER MODAL (Strictly within current portal role) */}
       {isTestSwitcherOpen && (
@@ -681,6 +553,40 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Unified Top Navigation Tab Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { id: 'dashboard', label: lang === 'ms' ? 'Papan Pemuka' : 'Dashboard', icon: LayoutDashboard },
+            { id: 'resources', label: lang === 'ms' ? 'Bahan Pembelajaran' : 'Learning Resources', icon: BookOpen },
+            { id: 'calendar', label: lang === 'ms' ? 'Kalendar Akademik' : 'Academic Calendar', icon: Calendar },
+            { id: 'timetable', label: lang === 'ms' ? 'Jadual & Tarikh Akhir' : 'Timetable & Deadlines', icon: FileSpreadsheet },
+            { id: 'gpa', label: lang === 'ms' ? 'Kalkulator GPA' : 'GPA Calculator', icon: Calculator },
+            ...(user.role === 'student' || canAccessKokoModule(user.email, user.name, user.role) ? [{ id: 'koko', label: lang === 'ms' ? 'Markah Kokurikulum' : 'Co-Curricular Marks', icon: Award }] : []),
+            ...(user.role === 'lecturer' && canAccessJatiDiriMarks(user.email, user.name, user.role) ? [{ id: 'jati_diri', label: lang === 'ms' ? 'Markah Jati Diri' : 'Jati Diri Marks', icon: Shield }] : []),
+            { id: 'community', label: lang === 'ms' ? 'Komuniti ASASIpintar' : 'ASASIpintar Community', icon: Users },
+            { id: 'ai-assistant', label: 'PINTAR AI Mentor', icon: Sparkles },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id || (tab.id === 'timetable' && activeTab === 'timetable');
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                  isActive
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </header>
   );
 };

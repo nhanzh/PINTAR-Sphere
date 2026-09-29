@@ -16,7 +16,14 @@ import {
   KokoPositionRole,
   calculateSuggestedKokoScore,
 } from '../utils/kokoScoring.ts';
-import { getStudentSetNumber } from '../utils/studentUtils.ts';
+import {
+  getStudentSetNumber,
+  canAccessKokoApplications,
+  canAccessJatiDiriMarks,
+  isProgramCoordinator,
+  isKokoCoordinator,
+  isJatiDiriCoordinator,
+} from '../utils/studentUtils.ts';
 import {
   Award,
   Shield,
@@ -39,6 +46,7 @@ import {
   Eye,
   XCircle,
   Filter,
+  Lock,
 } from 'lucide-react';
 
 interface KokoMarksViewProps {
@@ -46,6 +54,7 @@ interface KokoMarksViewProps {
   kokoRecords?: StudentKokoRecord[];
   onOpenGradeManager?: () => void;
   onRefreshData?: () => void;
+  defaultTab?: string;
 }
 
 export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
@@ -53,16 +62,37 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
   kokoRecords = [],
   onOpenGradeManager,
   onRefreshData,
+  defaultTab,
 }) => {
   const { lang } = useLanguage();
   const isStudent = user.role === 'student';
 
+  // Role-based permissions
+  const canKoko = canAccessKokoApplications(user.email, user.name, user.role);
+  const canJatiDiri = canAccessJatiDiriMarks(user.email, user.name, user.role);
+  const isPenyelaras = isProgramCoordinator(user.email, user.name);
+  const isDrMona = isKokoCoordinator(user.email, user.name);
+  const isJatiDiriLecturer = isJatiDiriCoordinator(user.email, user.name);
+
   // Submissions state
   const [submissions, setSubmissions] = useState<KokoSubmissionItem[]>([]);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected' | 'review' | 'jati_diri'>(
-    isStudent ? 'approved' : 'review'
-  );
+
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected' | 'review' | 'jati_diri'>(() => {
+    if (defaultTab === 'jati_diri') return 'jati_diri';
+    if (isStudent) return 'approved';
+    if (canJatiDiri && !canKoko) return 'jati_diri'; // Dr. Elmi & Puan Suhaina
+    return 'review'; // Dr. Mona & Penyelaras
+  });
+
+  // Ensure Dr. Elmi & Puan Suhaina stay on allowed tabs (jati_diri or approved)
+  useEffect(() => {
+    if (!isStudent && canJatiDiri && !canKoko && activeTab !== 'jati_diri' && activeTab !== 'approved') {
+      setActiveTab('jati_diri');
+    }
+  }, [canJatiDiri, canKoko, isStudent, activeTab]);
+
   const [lecturerSetFilter, setLecturerSetFilter] = useState<string>('all');
 
   // Form State for Student
@@ -113,22 +143,8 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     (k) => k.studentEmail.toLowerCase() === user.email.toLowerCase() && k.isPublished
   );
 
-  const hasScore10 = myKoko && myKoko.totalKoko10 !== null && myKoko.totalKoko10 !== undefined;
-  const kokoScore10 = hasScore10
-    ? myKoko.totalKoko10
-    : myKoko && myKoko.totalScore !== null && myKoko.totalScore !== undefined
-    ? Number((myKoko.totalScore / 10).toFixed(2))
-    : user.kokoMarks !== null && user.kokoMarks !== undefined
-    ? Number((user.kokoMarks / 10).toFixed(2))
-    : null;
-
-  const kokoGrade = myKoko?.grade || user.kokoGrade || (kokoScore10 && kokoScore10 >= 8.0 ? 'A' : 'A-');
-  const kokoBand = myKoko?.band || (kokoScore10 && kokoScore10 >= 8.0 ? 'Band 1' : 'Band 2');
-
-  const jatiDiri = myKoko?.jatiDiriScore ?? null;
-  const kokoActivitiesTotal =
-    myKoko?.kokoActivitiesTotal ??
-    (hasScore10 ? Number(Math.max(0, (kokoScore10 || 0) - (jatiDiri || 0)).toFixed(2)) : null);
+  const hasJatiDiri = myKoko?.jatiDiriScore !== null && myKoko?.jatiDiriScore !== undefined && Number(myKoko.jatiDiriScore) > 0;
+  const jatiDiri = hasJatiDiri ? Number(myKoko!.jatiDiriScore) : null;
 
   // Filtered submissions for student
   const studentApprovedSubmissions = submissions.filter(
@@ -170,6 +186,20 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
         .reduce((sum, s) => sum + (s.awardedScore || 0), 0) * 1000
     ) / 1000
   );
+
+  const kokoActivitiesTotal = Math.min(3.0, Math.round((catAScore + catBScore + catCScore) * 1000) / 1000);
+
+  const hasAnyScore = jatiDiri !== null || kokoActivitiesTotal > 0;
+  const kokoScore10 = hasAnyScore
+    ? Number(((jatiDiri || 0) + kokoActivitiesTotal).toFixed(2))
+    : null;
+
+  const kokoGrade = kokoScore10 !== null
+    ? (kokoScore10 >= 8.0 ? 'A' : kokoScore10 >= 7.0 ? 'A-' : kokoScore10 >= 6.0 ? 'B+' : 'B')
+    : 'Belum Dinilai';
+  const kokoBand = kokoScore10 !== null
+    ? (kokoScore10 >= 8.0 ? 'Band 1' : kokoScore10 >= 6.0 ? 'Band 2' : 'Band 3')
+    : 'Menunggu Penilaian';
 
   // Filtered roster for lecturer
   const studentRoster = dataService.getStudentRoster();
@@ -429,11 +459,15 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     if (!jatiDiriToReset) return;
     const { email, name } = jatiDiriToReset;
     setIsSavingJatiDiri(true);
+
+    // Reset dropdown selection to "-"
+    setSelectedJatiDiriGradeMap((prev) => ({ ...prev, [email]: '-' }));
+
     await dataService.resetJatiDiriScore(email, user.name);
     setIsSavingJatiDiri(false);
     setStatusNotice({
       type: 'success',
-      message: `Markah Jati Diri bagi ${name} telah berjaya di-reset!`,
+      message: `Markah Jati Diri bagi ${name} telah berjaya di-reset ke "-"!`,
     });
     setJatiDiriToReset(null);
     setTimeout(() => setStatusNotice(null), 4000);
@@ -443,17 +477,47 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
   const confirmResetAllJatiDiri = async () => {
     const setLabel = lecturerSetFilter === 'all' ? 'semua set (1 - 11)' : `Set ${lecturerSetFilter}`;
     setIsSavingJatiDiri(true);
+
+    // Reset all dropdown selections to "-"
+    setSelectedJatiDiriGradeMap({});
+
     const targetSet = lecturerSetFilter === 'all' ? undefined : Number(lecturerSetFilter);
     await dataService.resetAllJatiDiriScores(user.name, targetSet);
     setIsSavingJatiDiri(false);
     setStatusNotice({
       type: 'success',
-      message: `Markah Jati Diri bagi semua pelajar (${setLabel}) telah berjaya di-reset sepenuhnya!`,
+      message: `Markah Jati Diri bagi semua pelajar (${setLabel}) telah berjaya di-reset ke "-" sepenuhnya!`,
     });
     setIsResetAllJatiDiriOpen(false);
     setTimeout(() => setStatusNotice(null), 4000);
     if (onRefreshData) onRefreshData();
   };
+
+  // Unauthorized lecturer guard
+  if (!isStudent && !canKoko && !canJatiDiri) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center space-y-5 shadow-sm max-w-2xl mx-auto my-8">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+          <Shield className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+            Akses Terhad: Modul Kokurikulum & Pembangunan Jati Diri
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            Hanya <strong>Penyelaras ASASIpintar</strong>, <strong>Dr. Mona</strong> (Penyelaras Kokurikulum), serta <strong>Dr. Elmi & Puan Suhaina</strong> (Penyelaras Jati Diri) sahaja yang dibenarkan mengakses modul ini mengikut bidang kuasa akademik UKM.
+          </p>
+        </div>
+        <div className="pt-2 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-left space-y-2">
+          <div className="font-bold text-slate-900 dark:text-white">Struktur Bidang Kuasa Pensyarah UKM:</div>
+          <div>• <strong>Penyelaras ASASIpintar</strong>: Akses penuh menyeluruh (Semakan Permohonan Koko + Pengurusan Gred Jati Diri).</div>
+          <div>• <strong>Dr. Mona</strong>: Akses Semakan Permohonan & Aktiviti Kokurikulum sahaja (Tiada akses Markah Jati Diri).</div>
+          <div>• <strong>Dr. Elmi & Puan Suhaina</strong>: Akses Pengurusan Markah Jati Diri sahaja (Tiada akses Permohonan Koko).</div>
+          <div>• <strong>Pensyarah Lain</strong>: Tiada kebenaran akses modul ini.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -493,7 +557,13 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {isStudent
                 ? `Pelajar: ${user.name} (Set ${getStudentSetNumber(user)})`
-                : 'Portal Pensyarah Penilai Kokurikulum'}
+                : isPenyelaras
+                ? `Penyelaras Program ASASIpintar (${user.name}) • Akses Penuh Koko & Jati Diri`
+                : isDrMona
+                ? `Penyelaras Kokurikulum (Dr. Mona Fatin) • Semakan Permohonan Sahaja (Tiada Jati Diri)`
+                : isJatiDiriLecturer
+                ? `Penyelaras Jati Diri (${user.name}) • Pengurusan Gred Jati Diri Sahaja (Tiada Semakan Koko)`
+                : 'Portal Pensyarah'}
             </span>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1 tracking-tight">
@@ -567,7 +637,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                 }`}
               >
-                {jatiDiri !== null ? '✓ Selesai Dinilai' : '⏳ Dalam Proses Penilaian'}
+                {jatiDiri !== null ? `✓ Selesai Dinilai (${jatiDiri.toFixed(2)} / 7.00%)` : '⏳ Belum Dinilai'}
               </span>
             </div>
 
@@ -576,7 +646,7 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
               <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-400">
                 <span>Kemajuan Penilaian Jati Diri</span>
                 <span className="font-bold text-slate-900 dark:text-white">
-                  {jatiDiri !== null ? '100% Lengkap' : 'Menunggu Semakan Pensyarah'}
+                  {jatiDiri !== null ? `${jatiDiri.toFixed(2)} / 7.00% (100%)` : 'Belum Dinilai (Menunggu Penilaian Pensyarah)'}
                 </span>
               </div>
               <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden p-0.5 border border-slate-200/60 dark:border-slate-700">
@@ -584,15 +654,11 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                   className={`h-full rounded-full transition-all duration-500 ${
                     jatiDiri !== null
                       ? 'bg-gradient-to-r from-indigo-500 to-emerald-500 w-full'
-                      : 'bg-gradient-to-r from-amber-400 to-amber-500 w-1/4 animate-pulse'
+                      : 'bg-slate-300 dark:bg-slate-700 w-0'
                   }`}
                 />
               </div>
             </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Komponen jati diri dinilai terus oleh pensyarah penilai merangkumi penglibatan program kolej, adab, kehadiran serta jati diri warga ASASIpintar.
-            </p>
           </div>
 
           {/* Part 2: Aktiviti Kokurikulum (Progress Bars for Categories A, B, C) */}
@@ -838,45 +904,58 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
             </>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={() => setActiveTab('review')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'review'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Semakan Permohonan Pelajar</span>
-                {lecturerPendingSubmissions.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-950 font-black text-[10px]">
-                    {lecturerPendingSubmissions.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('approved')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'approved'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
-                }`}
-              >
-                Senarai Aktiviti Diluluskan ({lecturerApprovedSubmissions.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('jati_diri')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'jati_diri'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
-                }`}
-              >
-                Gred Jati Diri (7%)
-              </button>
+              {/* Koko Review Tab (For Dr. Mona & Penyelaras ASASIpintar) */}
+              {canKoko && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('review')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'review'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Semakan Permohonan Pelajar</span>
+                  {lecturerPendingSubmissions.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-950 font-black text-[10px]">
+                      {lecturerPendingSubmissions.length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Co-Curricular Marks / Approved Activities Tab (For Penyelaras, Dr. Mona, Dr. Elmi & Puan Suhaina) */}
+              {(canKoko || canJatiDiri) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('approved')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'approved'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Markah Kokurikulum ({lecturerApprovedSubmissions.length})</span>
+                </button>
+              )}
+
+              {/* Jati Diri Marks Tab (For Dr. Elmi, Puan Suhaina, and Penyelaras ASASIpintar) */}
+              {canJatiDiri && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('jati_diri')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'jati_diri'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Gred Jati Diri (7%)</span>
+                </button>
+              )}
             </>
           )}
         </div>
@@ -1126,8 +1205,8 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
         </div>
       )}
 
-      {/* LECTURER VIEW - REVIEW PENDING SUBMISSIONS */}
-      {!isStudent && activeTab === 'review' && (
+      {/* LECTURER VIEW - REVIEW PENDING SUBMISSIONS (Only Dr. Mona & Penyelaras) */}
+      {!isStudent && canKoko && activeTab === 'review' && (
         <div className="space-y-4">
           {lecturerPendingSubmissions.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center space-y-2">
@@ -1284,8 +1363,8 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
         </div>
       )}
 
-      {/* LECTURER VIEW - APPROVED ACTIVITIES */}
-      {!isStudent && activeTab === 'approved' && (
+      {/* LECTURER VIEW - APPROVED ACTIVITIES (Dr. Mona, Penyelaras, Dr. Elmi & Puan Suhaina) */}
+      {!isStudent && (canKoko || canJatiDiri) && activeTab === 'approved' && (
         <div className="space-y-3">
           {lecturerApprovedSubmissions.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-500">
@@ -1323,8 +1402,8 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
         </div>
       )}
 
-      {/* LECTURER VIEW - JATI DIRI MANAGEMENT (7%) */}
-      {!isStudent && activeTab === 'jati_diri' && (
+      {/* LECTURER VIEW - JATI DIRI MANAGEMENT (7%) (Only Dr. Elmi, Puan Suhaina & Penyelaras) */}
+      {!isStudent && canJatiDiri && activeTab === 'jati_diri' && (
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
@@ -1374,15 +1453,17 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     (k) => k.studentEmail.toLowerCase() === st.email.toLowerCase()
                   );
                   const currentScore = currentRec?.jatiDiriScore;
-                  const hasScore = currentScore !== undefined && currentScore !== null;
-                  const matchedScale = hasScore ? JATI_DIRI_SCALE.find((s) => Math.abs(s.score - currentScore) < 0.05) : null;
+                  const hasScore = currentScore !== undefined && currentScore !== null && Number(currentScore) > 0;
+                  const matchedScale = hasScore ? JATI_DIRI_SCALE.find((s) => Math.abs(s.score - Number(currentScore)) < 0.05) : null;
                   const currentGradeText = hasScore
                     ? matchedScale
                       ? `${matchedScale.grade} (${matchedScale.score.toFixed(2)})`
-                      : `${currentScore.toFixed(2)}`
+                      : `${Number(currentScore).toFixed(2)}`
                     : '-';
 
-                  const selectedGrade = selectedJatiDiriGradeMap[st.email] || matchedScale?.grade || '-';
+                  const selectedGrade = selectedJatiDiriGradeMap[st.email] !== undefined
+                    ? selectedJatiDiriGradeMap[st.email]
+                    : (hasScore ? matchedScale?.grade || '-' : '-');
 
                   return (
                     <tr key={st.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">

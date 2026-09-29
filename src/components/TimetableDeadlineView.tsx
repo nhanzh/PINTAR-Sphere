@@ -16,7 +16,7 @@ import { SUBJECTS } from '../data/mockData.ts';
 import { getSubjectDisplayName } from '../utils/subjectNames.ts';
 import { getLecturerForSetAndSubject } from '../utils/lecturerSetSync.ts';
 import { openOrDownloadSubmissionFile } from '../utils/fileUtils.ts';
-import { getStudentSetNumber } from '../utils/studentUtils.ts';
+import { getStudentSetNumber, isProgramCoordinator } from '../utils/studentUtils.ts';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -55,12 +55,31 @@ interface TimetableDeadlineViewProps {
   onRefreshData?: () => void;
 }
 
-const MONTH_NAMES_MY = [
-  'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
-  'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'
-];
+const LOCALIZED_MONTH_NAMES: Record<string, string[]> = {
+  ms: [
+    'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
+    'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'
+  ],
+  en: [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ],
+  zh: [
+    '一月', '二月', '三月', '四月', '五月', '六月',
+    '七月', '八月', '九月', '十月', '十一月', '十二月'
+  ],
+  ta: [
+    'ஜனவரி', 'பிப்ரவரி', 'மார்ச்', 'ஏப்ரல்', 'மே', 'ஜூன்',
+    'ஜூலை', 'ஆகஸ்ட்', 'செப்டம்பர்', 'அக்டோபர்', 'நவம்பர்', 'டிசம்பர்'
+  ],
+};
 
-const DAY_NAMES_MY = ['Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu', 'Ahad'];
+const LOCALIZED_DAY_NAMES: Record<string, string[]> = {
+  ms: ['Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu', 'Ahad'],
+  en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  zh: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+  ta: ['திங்கள்', 'செவ்வாய்', 'புதன்', 'வியாழன்', 'வெள்ளி', 'சனி', 'ஞாயிறு'],
+};
 
 export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
   user,
@@ -71,6 +90,8 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
   onRefreshData,
 }) => {
   const { lang, dict } = useLanguage();
+  const monthNames = LOCALIZED_MONTH_NAMES[lang] || LOCALIZED_MONTH_NAMES.ms;
+  const dayNames = LOCALIZED_DAY_NAMES[lang] || LOCALIZED_DAY_NAMES.ms;
   const isStudent = user.role === 'student';
   const studentSet = getStudentSetNumber(user);
 
@@ -126,8 +147,9 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
   const [selectedTargetSets, setSelectedTargetSets] = useState<string[]>(['Set 3']);
   const [isCreatingDeadline, setIsCreatingDeadline] = useState(false);
 
-  // Filter deadlines for student
+  // Filter deadlines for student / lecturer
   const filteredDeadlines = useMemo(() => {
+    const isAdminHub = isProgramCoordinator(user.email, user.name);
     return deadlines.filter((d) => {
       if (isStudent) {
         return (
@@ -136,9 +158,22 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
           d.targetSets.some((s) => s.toLowerCase().includes(String(studentSet)))
         );
       }
-      return true;
+      // If lecturer and not admin hub, only show deadlines they created
+      if (isAdminHub) return true;
+      return d.lecturerEmail === user.email;
     });
-  }, [deadlines, isStudent, studentSet]);
+  }, [deadlines, isStudent, studentSet, user.email, user.name]);
+
+  // Filter submissions so lecturers only see submissions for their own deadlines
+  const filteredSubmissions = useMemo(() => {
+    if (isStudent) return submissions;
+    const isAdminHub = isProgramCoordinator(user.email, user.name);
+    if (isAdminHub) return submissions;
+    const myDeadlineIds = new Set(
+      deadlines.filter((d) => d.lecturerEmail === user.email).map((d) => d.id)
+    );
+    return submissions.filter((s) => myDeadlineIds.has(s.deadlineId));
+  }, [submissions, deadlines, isStudent, user.email, user.name]);
 
   // Filter student's class schedules (Set 3 or all)
   const studentSchedules = useMemo(() => {
@@ -457,13 +492,13 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
       days.push({
         date: d,
         dateStr: formatYMD(d),
-        dayName: DAY_NAMES_MY[i],
+        dayName: dayNames[i],
         dayOfWeekIndex: i,
       });
     }
 
     return days;
-  }, [currentDate]);
+  }, [currentDate, dayNames]);
 
   // All upcoming items for agenda / list view
   const agendaItems = useMemo(() => {
@@ -549,7 +584,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2 tracking-tight">
-              {MONTH_NAMES_MY[currentDate.getMonth()]} {currentDate.getFullYear()}
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h1>
           </div>
 
@@ -679,7 +714,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
           {/* Weekday headers: Mon - Sun */}
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 text-center text-xs font-bold text-slate-700 dark:text-slate-300 py-3">
-            {DAY_NAMES_MY.map((dayName, idx) => (
+            {dayNames.map((dayName, idx) => (
               <div key={dayName} className={idx >= 5 ? 'text-rose-600 dark:text-rose-400' : ''}>
                 {dayName}
               </div>
@@ -899,7 +934,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
                       <div className="text-base font-extrabold text-slate-900 dark:text-white mt-0.5">
                         {wDay.date.getDate()}{' '}
                         <span className="text-xs font-normal text-slate-400">
-                          {MONTH_NAMES_MY[wDay.date.getMonth()].slice(0, 3)}
+                          {monthNames[wDay.date.getMonth()].slice(0, 3)}
                         </span>
                       </div>
                     </div>
@@ -1060,7 +1095,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center font-bold text-xs shrink-0">
                     <span className="text-[10px] text-slate-400 uppercase">
-                      {MONTH_NAMES_MY[new Date(item.dateStr).getMonth()]?.slice(0, 3)}
+                      {monthNames[new Date(item.dateStr).getMonth()]?.slice(0, 3)}
                     </span>
                     <span className="text-sm text-slate-900 dark:text-white">
                       {new Date(item.dateStr).getDate()}
@@ -1521,7 +1556,7 @@ export const TimetableDeadlineView: React.FC<TimetableDeadlineViewProps> = ({
               {!isStudent ? (
                 <div className="space-y-4">
                   {(() => {
-                    const dlSubs = submissions.filter((s) => s.deadlineId === selectedDeadline.id);
+                    const dlSubs = filteredSubmissions.filter((s) => s.deadlineId === selectedDeadline.id);
                     return (
                       <>
                         <div className="flex items-center justify-between">

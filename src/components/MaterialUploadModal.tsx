@@ -3,6 +3,7 @@ import { UserProfile, ResourceCategory } from '../types.ts';
 import { SUBJECTS } from '../data/mockData.ts';
 import { dataService } from '../services/dataService.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
+import { isProgramCoordinator } from '../utils/studentUtils.ts';
 import {
   X,
   Upload,
@@ -30,6 +31,8 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
   onSuccess,
 }) => {
   const { dict } = useLanguage();
+  const isAdminHub = isProgramCoordinator(user.email, user.name);
+  const lecturerSubject = SUBJECTS.find((s) => s.id === user.taughtSubject || s.code === user.taughtSubjectCode) || SUBJECTS[0];
 
   // Source options: 'file' (local upload / photo), 'drive' (Google Drive), 'photo' (Google Photos / image URL), 'link' (web link)
   const [sourceType, setSourceType] = useState<'file' | 'drive' | 'photo' | 'link'>('file');
@@ -41,7 +44,7 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
   const [selectedTargetSets, setSelectedTargetSets] = useState<string[]>(['Set 1', 'Set 3']);
   const [selectedFile, setSelectedFile] = useState<{ name: string; dataUrl?: string; type: string } | null>(null);
   const [selectedSubjectCode, setSelectedSubjectCode] = useState<string>(
-    user.taughtSubjectCode || 'PNAP0133'
+    user.role === 'lecturer' && !isAdminHub ? lecturerSubject.code : (user.taughtSubjectCode || 'PNAP0133')
   );
 
   const [isUploading, setIsUploading] = useState(false);
@@ -240,22 +243,31 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Respective Subject Dropdown */}
+          {/* Respective Subject Selection or Auto-assigned info */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Pilih Subjek / Kursus Bahan:
+              Subjek / Kursus Bahan:
             </label>
-            <select
-              value={selectedSubjectCode}
-              onChange={(e) => setSelectedSubjectCode(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              {SUBJECTS.map((sub) => (
-                <option key={sub.code} value={sub.code}>
-                  {sub.name} ({sub.code})
-                </option>
-              ))}
-            </select>
+            {user.role === 'lecturer' && !isAdminHub ? (
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold flex justify-between items-center animate-in fade-in">
+                <span>{lecturerSubject.name}</span>
+                <span className="bg-emerald-200 dark:bg-emerald-900 px-2.5 py-0.5 rounded text-[10px] font-mono">
+                  {lecturerSubject.code}
+                </span>
+              </div>
+            ) : (
+              <select
+                value={selectedSubjectCode}
+                onChange={(e) => setSelectedSubjectCode(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                {SUBJECTS.map((sub) => (
+                  <option key={sub.code} value={sub.code}>
+                    {sub.name} ({sub.code})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Source Selection Tabs */}

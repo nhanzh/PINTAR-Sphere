@@ -37,8 +37,9 @@ import { KokoMarksView } from './components/KokoMarksView.tsx';
 import { StudentRosterView } from './components/StudentRosterView.tsx';
 import { CommunityView } from './components/CommunityView.tsx';
 import { AiAssistantView } from './components/AiAssistantView.tsx';
+import { canAccessJatiDiriMarks, canAccessKokoModule } from './utils/studentUtils.ts';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, LayoutDashboard, BookOpen, Calendar, FileSpreadsheet, Calculator, Award, Shield, Users } from 'lucide-react';
 
 function getInitialPortal(): UserRole {
   if (typeof window === 'undefined') return 'student';
@@ -289,7 +290,7 @@ function AppContent() {
       )}
 
       {/* Main Dynamic Workspace Area */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 min-w-0">
         {activeTab === 'dashboard' &&
           (user.role === 'student' ? (
             <StudentDashboardView
@@ -369,6 +370,15 @@ function AppContent() {
           />
         )}
 
+        {activeTab === 'jati_diri' && (
+          <KokoMarksView
+            user={user}
+            kokoRecords={kokoRecords}
+            onOpenGradeManager={() => setActiveTab('gpa')}
+            defaultTab="jati_diri"
+          />
+        )}
+
         {activeTab === 'students-roster' && <StudentRosterView user={user} />}
 
         {activeTab === 'community' && (
@@ -405,7 +415,9 @@ function AppContent() {
       <footer className="mt-auto border-t border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs py-4 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-medium">
-            <span className="font-extrabold text-indigo-700 dark:text-indigo-400">PINTAR@Sphere</span>
+            <span className="font-extrabold text-black dark:text-white">
+              PINTAR<span className="text-red-600 dark:text-red-500 font-extrabold">@Sphere</span>
+            </span>
             <span>— Program ASASIpintar • Universiti Kebangsaan Malaysia (UKM)</span>
           </div>
           <div className="text-[11px] text-slate-400 dark:text-slate-500">

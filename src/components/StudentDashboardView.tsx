@@ -475,8 +475,8 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200">Pembangunan Jati Diri</span>
-                  <span className="font-extrabold text-teal-600 dark:text-teal-400">
-                    {myKoko?.jatiDiriScore !== null && myKoko?.jatiDiriScore !== undefined ? myKoko.jatiDiriScore : '—'} / 7.0
+                  <span className={`font-extrabold ${myKoko?.jatiDiriScore && myKoko.jatiDiriScore > 0 ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'}`}>
+                    {myKoko?.jatiDiriScore && myKoko.jatiDiriScore > 0 ? `${Number(myKoko.jatiDiriScore).toFixed(2)} / 7.0` : '— (Belum Dinilai)'}
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
@@ -484,12 +484,14 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     className="h-full bg-teal-500 rounded-full transition-all duration-700"
                     style={{
                       width: `${
-                        myKoko?.jatiDiriScore ? Math.min(100, (myKoko.jatiDiriScore / 7) * 100) : 0
+                        myKoko?.jatiDiriScore && myKoko.jatiDiriScore > 0 ? Math.min(100, (myKoko.jatiDiriScore / 7) * 100) : 0
                       }%`,
                     }}
                   />
                 </div>
-                <div className="text-[10px] text-slate-400">Modul sahsiah, disiplin & kepimpinan UKM</div>
+                <div className="text-[10px] text-slate-400">
+                  {myKoko?.jatiDiriScore && myKoko.jatiDiriScore > 0 ? '✓ Selesai dinilai oleh pensyarah' : 'Modul sahsiah, disiplin & kepimpinan UKM (Belum dinilai)'}
+                </div>
               </div>
 
               {/* Aktiviti Kokurikulum 3.0 */}

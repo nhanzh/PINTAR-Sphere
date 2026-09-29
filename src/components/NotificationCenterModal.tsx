@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppNotification, UserProfile, ActiveTab } from '../types.ts';
 import { dataService } from '../services/dataService.ts';
+import { useLanguage } from '../i18n/LanguageContext.tsx';
 import {
   Bell,
   Mail,
@@ -32,9 +33,72 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   onClose,
   onNavigateTab,
 }) => {
+  const { lang, dict } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState<'in_app' | 'email'>('in_app');
 
   if (!isOpen) return null;
+
+  const labels = {
+    ms: {
+      title: 'Pusat Notifikasi UKM',
+      inAppTab: 'Notifikasi In-App',
+      emailTab: 'Makluman Emel',
+      markRead: 'Tanda Dibaca',
+      clearAll: 'Padam Semua',
+      empty: 'Tiada notifikasi setakat ini.',
+      newBadge: 'Baharu',
+      openView: 'Buka Paparan',
+      deleteTip: 'Padam Notifikasi',
+      sentTo: 'Dihantar ke',
+    },
+    en: {
+      title: 'UKM Notification Center',
+      inAppTab: 'In-App Alerts',
+      emailTab: 'Email Notifications',
+      markRead: 'Mark Read',
+      clearAll: 'Clear All',
+      empty: 'No notifications at this time.',
+      newBadge: 'New',
+      openView: 'Open View',
+      deleteTip: 'Delete Notification',
+      sentTo: 'Sent to',
+    },
+    zh: {
+      title: 'UKM 通知与消息中心',
+      inAppTab: '应用内通知',
+      emailTab: '邮箱同步提醒',
+      markRead: '全部标为已读',
+      clearAll: '清空全部通知',
+      empty: '暂无任何通知。',
+      newBadge: '新',
+      openView: '前往查看',
+      deleteTip: '删除通知',
+      sentTo: '接收方',
+    },
+    ta: {
+      title: 'UKM அறிவிப்பு மையம்',
+      inAppTab: 'பயன்பாட்டு அறிவிப்புகள்',
+      emailTab: 'மின்னஞ்சல் விழிப்பூட்டல்கள்',
+      markRead: 'படித்ததாகக் குறிக்கவும்',
+      clearAll: 'அனைத்தையும் அழி',
+      empty: 'தற்போது எந்த அறிவிப்பும் இல்லை.',
+      newBadge: 'புதியது',
+      openView: 'பார்வையைத் திறக்கவும்',
+      deleteTip: 'அறிவிப்பை நீக்கு',
+      sentTo: 'அனுப்பப்பட்டது',
+    },
+  }[lang] || {
+    title: 'Pusat Notifikasi UKM',
+    inAppTab: 'Notifikasi In-App',
+    emailTab: 'Makluman Emel',
+    markRead: 'Tanda Dibaca',
+    clearAll: 'Padam Semua',
+    empty: 'Tiada notifikasi setakat ini.',
+    newBadge: 'Baharu',
+    openView: 'Buka Paparan',
+    deleteTip: 'Padam Notifikasi',
+    sentTo: 'Dihantar ke',
+  };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -95,16 +159,13 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-slate-900 dark:text-white">Pusat Notifikasi UKM</h2>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white">{labels.title}</h2>
                 {unreadCount > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold">
-                    {unreadCount} Baharu
+                    {unreadCount} {labels.newBadge}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Makluman In-App & Penghantaran Emel Akaun UKM ({user.email})
-              </p>
             </div>
           </div>
 
@@ -125,11 +186,11 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeSubTab === 'in_app'
                   ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Bell className="w-3.5 h-3.5" />
-              <span>Notifikasi In-App ({notifications.length})</span>
+              <span>{labels.inAppTab} ({notifications.length})</span>
             </button>
             <button
               type="button"
@@ -137,11 +198,11 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeSubTab === 'email'
                   ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Mail className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Makluman Emel ({notifications.length})</span>
+              <span>{labels.emailTab} ({notifications.length})</span>
             </button>
           </div>
 
@@ -153,7 +214,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span>Tanda Dibaca</span>
+                <span>{labels.markRead}</span>
               </button>
             )}
             {notifications.length > 0 && (
@@ -161,10 +222,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 type="button"
                 onClick={handleClearAll}
                 className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer ml-2"
-                title="Padam semua notifikasi"
+                title={labels.clearAll}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Padam Semua</span>
+                <span>{labels.clearAll}</span>
               </button>
             )}
           </div>
@@ -175,7 +236,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
           {notifications.length === 0 ? (
             <div className="text-center py-10 space-y-2">
               <Bell className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-              <div className="text-xs font-bold text-slate-500">Tiada notifikasi setakat ini.</div>
+              <div className="text-xs font-bold text-slate-500 dark:text-slate-400">{labels.empty}</div>
             </div>
           ) : activeSubTab === 'in_app' ? (
             notifications.map((notif) => (
@@ -185,7 +246,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 className={`group relative p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
                   !notif.isRead
                     ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 shadow-2xs'
-                    : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 hover:bg-slate-100/60'
+                    : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-800/70'
                 }`}
               >
                 <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
@@ -205,7 +266,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                   </p>
                   {notif.linkTab && (
                     <div className="pt-1 flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-                      <span>Buka Paparan {notif.linkTab.toUpperCase()}</span>
+                      <span>{labels.openView} {notif.linkTab.toUpperCase()}</span>
                       <ExternalLink className="w-3 h-3" />
                     </div>
                   )}
@@ -218,7 +279,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                     type="button"
                     onClick={(e) => handleDeleteNotification(e, notif.id)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                    title="Padam Notifikasi"
+                    title={labels.deleteTip}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -231,12 +292,12 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                 key={notif.id}
                 className="p-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700 space-y-2 text-xs"
               >
-                <div className="flex items-center justify-between text-slate-500 border-b border-slate-200/60 dark:border-slate-700/60 pb-1.5 text-[11px]">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 border-b border-slate-200/60 dark:border-slate-700/60 pb-1.5 text-[11px]">
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <Mail className="w-3.5 h-3.5" />
-                    Dihantar ke: {notif.recipientEmail === 'all' ? user.email : notif.recipientEmail}
+                    {labels.sentTo}: {notif.recipientEmail === 'all' ? user.email : notif.recipientEmail}
                   </span>
-                  <span>{new Date(notif.createdAt).toLocaleDateString('ms-MY')} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{new Date(notif.createdAt).toLocaleDateString(lang === 'zh' ? 'zh-CN' : lang === 'ta' ? 'ta-IN' : lang === 'en' ? 'en-US' : 'ms-MY')} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div>
                   <div className="font-extrabold text-slate-900 dark:text-white">{notif.title}</div>
