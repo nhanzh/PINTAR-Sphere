@@ -27,34 +27,6 @@ export interface DummyTestAccount {
 }
 
 export const DUMMY_TEST_ACCOUNTS: DummyTestAccount[] = [
-  // Students
-  {
-    role: 'student',
-    name: 'NUR HANNAN ZAHIRAH BINTI MOHD ZAKI',
-    email: 'ap05710@siswa.ukm.edu.my',
-    matricNumber: 'AP05710',
-    setNumber: 3,
-    description: 'Pelajar Siswa Set 3 (Akaun Utama)',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'student',
-    name: 'AIMI AISYAH BINTI AHMAD',
-    email: 'ap05466@siswa.ukm.edu.my',
-    matricNumber: 'AP05466',
-    setNumber: 1,
-    description: 'Pelajar Siswa Set 1',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'student',
-    name: 'TAN SHI MAN',
-    email: 'ap05560@siswa.ukm.edu.my',
-    matricNumber: 'AP05560',
-    setNumber: 5,
-    description: 'Pelajar Siswa Set 5',
-    defaultPassword: '123456',
-  },
   // Lecturers
   {
     role: 'lecturer',

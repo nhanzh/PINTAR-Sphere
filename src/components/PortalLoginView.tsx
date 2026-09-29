@@ -36,7 +36,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   const activePortal = lockedPortal || initialPortal || 'student';
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const dummyStudentAccounts = DUMMY_TEST_ACCOUNTS.filter((d) => d.role === 'student');
   const dummyLecturerAccounts = DUMMY_TEST_ACCOUNTS.filter((d) => d.role === 'lecturer');
 
   const handleQuickDemoLogin = async (acc: DummyTestAccount) => {
@@ -565,59 +564,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                     )}
                   </div>
                 </form>
-
-                {/* Fast Dummy Test Accounts for Students */}
-                <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/80">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">
-                        🧪
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {lang === 'ms' ? 'Akaun Dummy Ujian Pelajar' : 'Student Dummy Test Accounts'}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {lang === 'ms'
-                            ? 'Kata laluan rasmi ujian: 123456 • Klik untuk log masuk terus'
-                            : 'Default test password: 123456 • Click to test login immediately'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {dummyStudentAccounts.map((acc) => (
-                      <button
-                        key={acc.email}
-                        type="button"
-                        onClick={() => handleQuickDemoLogin(acc)}
-                        className="p-3 text-left rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 hover:bg-blue-100/80 dark:hover:bg-blue-900/60 transition-all cursor-pointer group shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white font-mono">
-                            Set {acc.setNumber}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-400 font-semibold">
-                            {acc.matricNumber}
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                          {acc.name.split(' ')[0]} {acc.name.split(' ')[1] || ''}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5">
-                          {acc.email}
-                        </div>
-                        <div className="mt-2.5 pt-2 border-t border-blue-200/50 dark:border-blue-900/40 text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between">
-                          <span>K. Laluan: {acc.defaultPassword}</span>
-                          <span className="flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                            Uji Masuk ⚡
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             ) : (
               /* LECTURER PORTAL (Email & Password - Auto Faculty Directory Matching) */
