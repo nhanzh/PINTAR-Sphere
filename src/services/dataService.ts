@@ -454,8 +454,18 @@ class DataService {
     const updated = current.filter((d) => d.id !== id);
     saveLocal(KEYS.DEADLINES, updated);
 
+    // Automatically remove associated student submissions for this deadline
+    const currentSubmissions = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
+    const updatedSubmissions = currentSubmissions.filter((s) => s.deadlineId !== id);
+    saveLocal(KEYS.SUBMISSIONS, updatedSubmissions);
+
     try {
       await deleteDoc(doc(db, 'deadlines', id));
+      const q = query(collection(db, 'submissions'), where('deadlineId', '==', id));
+      const snaps = await getDocs(q);
+      for (const d of snaps.docs) {
+        await deleteDoc(doc(db, 'submissions', d.id));
+      }
     } catch (err) {
       console.warn('Firestore deleteDeadline sync error:', err);
     }
