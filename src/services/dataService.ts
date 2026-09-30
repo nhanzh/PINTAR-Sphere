@@ -31,6 +31,7 @@ import {
 } from '../types.ts';
 import { isWithin24Hours } from '../utils/dateUtils.ts';
 import { getStudentSetNumber, isProgramCoordinator, isKokoCoordinator } from '../utils/studentUtils.ts';
+import { calculateSuggestedKokoScore } from '../utils/kokoScoring.ts';
 import {
   INITIAL_RESOURCES,
   INITIAL_SCHEDULES,
@@ -944,6 +945,22 @@ class DataService {
     const localData = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
     callback(localData);
 
+    const stopPoll = pollFromServer('kokoRecords', (serverItems) => {
+      const current = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
+      const map = new Map<string, StudentKokoRecord>();
+      serverItems.forEach((item) => {
+        const key = (item.studentEmail || item.matricNumber || item.id).toLowerCase();
+        map.set(key, item);
+      });
+      current.forEach((item) => {
+        const key = (item.studentEmail || item.matricNumber || item.id).toLowerCase();
+        if (!map.has(key)) map.set(key, item);
+      });
+      const merged = Array.from(map.values());
+      saveLocal(KEYS.KOKO, merged);
+      callback(merged);
+    });
+
     const unsubSync = registerSyncListener<StudentKokoRecord[]>(KEYS.KOKO, callback);
 
     try {
@@ -978,10 +995,12 @@ class DataService {
         }
       );
       return () => {
+        stopPoll();
         unsubSync();
         unsubscribe();
       };
     } catch {
+      stopPoll();
       return unsubSync;
     }
   }
@@ -1012,6 +1031,7 @@ class DataService {
       updated = [normalizedRecord, ...current];
     }
     saveLocal(KEYS.KOKO, updated);
+    syncToServer('kokoRecords', normalizedRecord);
 
     try {
       await setDoc(doc(db, 'kokoRecords', normalizedRecord.id), sanitizeForFirestore(normalizedRecord));
@@ -1039,16 +1059,34 @@ class DataService {
     return this.subscribeKokoRecords(callback);
   }
 
-  // --- STUDENT KOKO SUBMISSIONS (Workflow: Student Submit -> Lecturer Review & Award -> Student Receive) ---
+  // --- STUDENT KOKO SUBMISSIONS (Workflow: Student Submit -> Auto-Approved & Synced Immediately) ---
   public subscribeKokoSubmissions(callback: (items: KokoSubmissionItem[]) => void): () => void {
-    const localData = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []).map((sub) => ({
-      ...sub,
-      setNumber: getStudentSetNumber(sub),
-    }));
+    const rawLocal = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
+    const localData = rawLocal.map((sub) => {
+      const autoScore = sub.awardedScore !== undefined && sub.awardedScore !== null
+        ? sub.awardedScore
+        : calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
+      return {
+        ...sub,
+        status: (sub.status as any) || 'pending',
+        awardedScore: sub.status === 'approved' ? autoScore : (sub.awardedScore ?? 0),
+        setNumber: getStudentSetNumber(sub),
+      };
+    });
     callback(localData);
 
     const stopPoll = pollFromServer('kokoSubmissions', (serverItems) => {
-      const mapped = serverItems.map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) }));
+      const mapped = serverItems.map((sub) => {
+        const autoScore = sub.awardedScore !== undefined && sub.awardedScore !== null
+          ? sub.awardedScore
+          : calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
+        return {
+          ...sub,
+          status: (sub.status as any) || 'pending',
+          awardedScore: sub.status === 'approved' ? autoScore : (sub.awardedScore ?? 0),
+          setNumber: getStudentSetNumber(sub),
+        };
+      });
       const current = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
       const map = new Map<string, KokoSubmissionItem>();
       mapped.forEach((item) => map.set(item.id, item));
@@ -1062,7 +1100,14 @@ class DataService {
     });
 
     const unsubSync = registerSyncListener<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, (data) => {
-      callback((data || []).map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) })));
+      callback(
+        (data || []).map((sub) => ({
+          ...sub,
+          status: (sub.status as any) || 'pending',
+          awardedScore: sub.status === 'approved' ? (sub.awardedScore || calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory)) : (sub.awardedScore ?? 0),
+          setNumber: getStudentSetNumber(sub),
+        }))
+      );
     });
 
     try {
@@ -1073,9 +1118,14 @@ class DataService {
           const remoteItems: KokoSubmissionItem[] = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data() as any;
+            const autoScore = data.awardedScore !== undefined && data.awardedScore !== null
+              ? data.awardedScore
+              : calculateSuggestedKokoScore(data.category, data.level, data.subCategory);
             remoteItems.push({
               id: docSnap.id,
               ...data,
+              status: data.status || 'pending',
+              awardedScore: data.status === 'approved' ? autoScore : (data.awardedScore ?? 0),
               setNumber: getStudentSetNumber(data),
             });
           });
@@ -1117,11 +1167,24 @@ class DataService {
       studentName: submission.studentName,
     });
 
+    const cleanEmail = (submission.studentEmail || '').trim().toLowerCase();
+    const cleanMatric = (submission.matricNumber || cleanEmail.split('@')[0] || '').trim().toUpperCase();
+
+    // Auto-calculate suggested score based on official UKM scale
+    const autoScore = calculateSuggestedKokoScore(
+      submission.category,
+      submission.level,
+      submission.subCategory
+    );
+
     const newItem: KokoSubmissionItem = {
       ...submission,
+      studentEmail: cleanEmail,
+      matricNumber: cleanMatric,
       setNumber: resolvedSet,
       id: `koko-sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      status: 'pending',
+      status: 'pending', // Pending lecturer review & verification
+      awardedScore: autoScore, // Suggested score saved for lecturer's convenience
       submittedAt: new Date().toISOString(),
     };
 
@@ -1132,8 +1195,8 @@ class DataService {
 
     // Prepare bounded copy for remote Firestore to guarantee setDoc success (<1MB limit)
     const firestoreDoc = { ...newItem };
-    if (firestoreDoc.certificateFileUrl && firestoreDoc.certificateFileUrl.length > 200000) {
-      firestoreDoc.certificateFileUrl = firestoreDoc.certificateFileUrl.substring(0, 200000);
+    if (firestoreDoc.certificateFileUrl && firestoreDoc.certificateFileUrl.length > 850000) {
+      firestoreDoc.certificateFileUrl = firestoreDoc.certificateFileUrl.substring(0, 850000);
     }
 
     try {
@@ -1143,13 +1206,12 @@ class DataService {
     }
 
     this.addNotification({
-      recipientEmail: 'all',
-      senderEmail: submission.studentEmail,
-      type: 'koko_submitted',
-      title: 'Permohonan Aktiviti KOKO Baharu',
-      message: `${submission.studentName} (${submission.studentEmail}) telah menghantar permohonan pengiktirafan aktiviti "${submission.activityName}".`,
+      recipientEmail: cleanEmail,
+      type: 'koko_reviewed',
+      title: 'Permohonan Kokurikulum Dihantar',
+      message: `Permohonan aktiviti "${submission.activityName}" telah berjaya dihantar untuk semakan pensyarah penilai.`,
       linkTab: 'koko',
-      senderName: submission.studentName,
+      senderName: 'Sistem ASASIpintar',
     });
 
     return newItem;
@@ -1179,6 +1241,7 @@ class DataService {
 
     const updated = current.map((s) => (s.id === submissionId ? updatedItem : s));
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
+    syncToServer('kokoSubmissions', updatedItem);
 
     const firestoreReviewDoc = { ...updatedItem };
     if (firestoreReviewDoc.certificateFileUrl && firestoreReviewDoc.certificateFileUrl.length > 200000) {

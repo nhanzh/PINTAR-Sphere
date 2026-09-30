@@ -114,14 +114,16 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   };
   const [kokoSubmissions, setKokoSubmissions] = useState<KokoSubmissionItem[]>([]);
   const [kokoSetFilter, setKokoSetFilter] = useState<string>('all');
-  const [reviewScoreInputs, setReviewScoreInputs] = useState<Record<string, number>>({});
-  const [isReviewingKoko, setIsReviewingKoko] = useState<string | null>(null);
   const [kokoActionToast, setKokoActionToast] = useState<string | null>(null);
   const [deadlineToDelete, setDeadlineToDelete] = useState<DeadlineItem | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<SubmissionRecord | null>(null);
   const [cancellingBroadcastId, setCancellingBroadcastId] = useState<string | null>(null);
+
+  // Koko Review State for Lecturer
+  const [reviewScoreInputs, setReviewScoreInputs] = useState<Record<string, number>>({});
+  const [isReviewingKoko, setIsReviewingKoko] = useState<string | null>(null);
   const [rejectingSub, setRejectingSub] = useState<KokoSubmissionItem | null>(null);
-  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
 
   const subjectName = user.taughtSubjectName || 'Chemistry I';
   const subjectCode = user.taughtSubjectCode || 'PNAP0133';
@@ -137,22 +139,26 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
     return () => unsub();
   }, []);
 
-  const pendingKokoList = kokoSubmissions.filter((s) => {
-    if (s.status !== 'pending') return false;
+  const activeKokoList = kokoSubmissions.filter((s) => {
     if (kokoSetFilter !== 'all' && s.setNumber !== Number(kokoSetFilter)) return false;
     return true;
   });
 
+  const pendingKokoList = activeKokoList.filter((s) => s.status === 'pending');
+
   const handleApproveKoko = async (sub: KokoSubmissionItem) => {
-    const matrixScore = calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
-    const scoreToAward = reviewScoreInputs[sub.id] !== undefined ? reviewScoreInputs[sub.id] : matrixScore;
-
+    const suggestedScore = calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
+    const awardedScore = reviewScoreInputs[sub.id] !== undefined ? reviewScoreInputs[sub.id] : suggestedScore;
     setIsReviewingKoko(sub.id);
-    await dataService.reviewKokoSubmission(sub.id, 'approved', scoreToAward, user.name, sub.subCategory);
-    setIsReviewingKoko(null);
-
-    setKokoActionToast(`Permohonan "${sub.activityName}" bagi ${sub.studentName} berjaya diluluskan (+${scoreToAward.toFixed(3)} markah)!`);
-    setTimeout(() => setKokoActionToast(null), 5000);
+    try {
+      await dataService.reviewKokoSubmission(sub.id, 'approved', awardedScore, user.name, sub.subCategory);
+      setKokoActionToast(`Permohonan "${sub.activityName}" bagi ${sub.studentName} (Set ${getStudentSetNumber(sub)}) berjaya diluluskan (+${awardedScore.toFixed(3)} markah)!`);
+      setTimeout(() => setKokoActionToast(null), 5000);
+    } catch (err) {
+      console.error('Failed to approve koko submission:', err);
+    } finally {
+      setIsReviewingKoko(null);
+    }
   };
 
   const handleOpenRejectModal = (sub: KokoSubmissionItem) => {
@@ -164,19 +170,24 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
     if (!rejectingSub) return;
     const finalReason = rejectionReasonInput.trim() || 'Maklumat atau sijil lampiran tidak memenuhi kriteria.';
     setIsReviewingKoko(rejectingSub.id);
-    await dataService.reviewKokoSubmission(
-      rejectingSub.id,
-      'rejected',
-      0,
-      user.name,
-      rejectingSub.subCategory,
-      finalReason
-    );
-    setIsReviewingKoko(null);
-    setRejectingSub(null);
-    setRejectionReasonInput('');
-    setKokoActionToast(`Permohonan "${rejectingSub.activityName}" bagi ${rejectingSub.studentName} telah ditolak.`);
-    setTimeout(() => setKokoActionToast(null), 5000);
+    try {
+      await dataService.reviewKokoSubmission(
+        rejectingSub.id,
+        'rejected',
+        0,
+        user.name,
+        rejectingSub.subCategory,
+        finalReason
+      );
+      setKokoActionToast(`Permohonan "${rejectingSub.activityName}" telah ditolak.`);
+      setTimeout(() => setKokoActionToast(null), 5000);
+      setRejectingSub(null);
+      setRejectionReasonInput('');
+    } catch (err) {
+      console.error('Failed to reject koko submission:', err);
+    } finally {
+      setIsReviewingKoko(null);
+    }
   };
 
   // Filter resources uploaded by this lecturer or for their subject
@@ -486,162 +497,179 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
           {/* Real-Time Student Co-Curricular Verification Cards (Only Dr Mona & Penyelaras ASASIpintar) */}
           {canKoko && (
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-amber-300/80 dark:border-amber-800/80 p-5 shadow-xs transition-colors space-y-4">
-            {/* Header & Filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                  <Award className="w-4.5 h-4.5" />
+              {/* Header & Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                    <Award className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Pengesahan Permohonan Kokurikulum Pelajar</span>
+                      {pendingKokoList.length > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold flex items-center gap-1 animate-pulse">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          {pendingKokoList.length} Menunggu Kelulusan
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 text-[11px] font-extrabold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          Selesai Disemak
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Sahkan permohonan aktiviti dan anugerahkan markah kokurikulum rasmi UKM secara terus ke portal pelajar.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>{dict.kokoReviewRequests}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold">
-                      {pendingKokoList.length} Menunggu
-                    </span>
-                  </h2>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    value={kokoSetFilter}
+                    onChange={(e) => setKokoSetFilter(e.target.value)}
+                    className="px-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="all">Semua Set (1-11)</option>
+                    {Array.from({ length: 11 }, (_, i) => i + 1).map((s) => (
+                      <option key={s} value={String(s)}>Set {s}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('koko')}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                  >
+                    <span>Buku Rekod Koko</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Toast Feedback */}
+              {kokoActionToast && (
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{kokoActionToast}</span>
+                  </div>
+                  <button onClick={() => setKokoActionToast(null)} className="underline cursor-pointer">Tutup</button>
+                </div>
+              )}
+
+              {/* List of Pending Submissions */}
+              {pendingKokoList.length === 0 ? (
+                <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1.5 bg-slate-50/50 dark:bg-slate-800/30">
+                  <Award className="w-7 h-7 text-emerald-500 mx-auto" />
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Tiada Permohonan Menunggu Kelulusan
+                  </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Semak butiran penyertaan/jawatan yang dihantar oleh pelajar dan berikan markah pengesahan.
+                    Semua aktiviti yang dimuat naik oleh pelajar telah selesai dinilai dan disahkan.
                   </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                  {pendingKokoList.map((sub) => {
+                    const suggestedScore = calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
+                    const currentInputScore = reviewScoreInputs[sub.id] !== undefined ? reviewScoreInputs[sub.id] : suggestedScore;
+                    const isProcessing = isReviewingKoko === sub.id;
 
-              <div className="flex items-center gap-2 shrink-0">
-                <select
-                  value={kokoSetFilter}
-                  onChange={(e) => setKokoSetFilter(e.target.value)}
-                  className="px-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-200"
-                >
-                  <option value="all">Semua Set (1-11)</option>
-                  {Array.from({ length: 11 }, (_, i) => i + 1).map((s) => (
-                    <option key={s} value={String(s)}>Set {s}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('koko')}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
-                >
-                  <span>Portal Koko Penuh</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Action Toast Feedback */}
-            {kokoActionToast && (
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-bold flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{kokoActionToast}</span>
-                </div>
-                <button onClick={() => setKokoActionToast(null)} className="underline cursor-pointer">Tutup</button>
-              </div>
-            )}
-
-            {/* List of Pending Koko Submissions */}
-            {pendingKokoList.length === 0 ? (
-              <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1.5 bg-slate-50/50 dark:bg-slate-800/30">
-                <CheckCircle2 className="w-7 h-7 text-emerald-500 mx-auto" />
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Tiada Permohonan Semakan Kokurikulum Tertunggak
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Semua permohonan penyertaan/jawatan kokurikulum daripada pelajar telah disemak.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pendingKokoList.map((sub) => {
-                  const matrixScore = calculateSuggestedKokoScore(sub.category, sub.level, sub.subCategory);
-                  const currentScore = reviewScoreInputs[sub.id] !== undefined ? reviewScoreInputs[sub.id] : matrixScore;
-
-                  return (
-                    <div
-                      key={sub.id}
-                      className="p-4 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/20 hover:bg-white dark:hover:bg-slate-800 transition-all space-y-3 shadow-2xs"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-100 dark:border-amber-900/40">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-xs text-slate-900 dark:text-white">{sub.studentName}</span>
-                          <span className="font-mono text-[11px] text-slate-500">({sub.matricNumber})</span>
-                          <span className="px-2 py-0.2 rounded bg-blue-100 text-blue-900 text-[10px] font-bold">Set {getStudentSetNumber(sub)}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-200 text-amber-950">{sub.categoryName}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 capitalize">{sub.levelName}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-slate-400 text-[10px] font-semibold block">Aktiviti / Jawatan:</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{sub.activityName}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[10px] font-semibold block">Masa &amp; Tempat:</span>
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {new Date(sub.startDateTime).toLocaleDateString('ms-MY')} @ {sub.venue}
-                          </span>
-                        </div>
-                        {sub.certificateFileUrl && (
-                          <div className="sm:col-span-2">
-                            <a
-                              href={sub.certificateFileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              <span>{sub.certificateFileName || dict.openStudentCertificate}</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                    return (
+                      <div
+                        key={sub.id}
+                        className="p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/30 dark:bg-amber-950/15 hover:bg-white dark:hover:bg-slate-800 transition-all space-y-3 shadow-2xs"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-100 dark:border-amber-900/40">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-xs text-slate-900 dark:text-white">{sub.studentName}</span>
+                            <span className="font-mono text-[11px] text-slate-500">({sub.matricNumber})</span>
+                            <span className="px-2 py-0.2 rounded bg-blue-100 text-blue-900 text-[10px] font-bold">Set {getStudentSetNumber(sub)}</span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Approval & Score Selector */}
-                      <div className="pt-2 border-t border-amber-100 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{dict.suggestedScore}:</span>
-                          <button
-                            type="button"
-                            onClick={() => setReviewScoreInputs((prev) => ({ ...prev, [sub.id]: matrixScore }))}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-all ${
-                              currentScore === matrixScore
-                                ? 'bg-amber-600 text-white shadow-xs'
-                                : 'bg-white dark:bg-slate-800 border border-amber-300 text-amber-900'
-                            }`}
-                          >
-                            +{matrixScore.toFixed(3)}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-200 text-amber-950">{sub.categoryName}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 capitalize">{sub.levelName}</span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <button
-                            type="button"
-                            disabled={isReviewingKoko === sub.id}
-                            onClick={() => handleOpenRejectModal(sub)}
-                            className="px-3 py-1 rounded-xl border border-rose-300 text-rose-700 text-xs font-bold hover:bg-rose-50 cursor-pointer"
-                          >
-                            Tolak
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isReviewingKoko === sub.id}
-                            onClick={() => handleApproveKoko(sub)}
-                            className="px-3.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Luluskan (+{currentScore.toFixed(3)})</span>
-                          </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-slate-400 text-[10px] font-semibold block">Aktiviti / Jawatan:</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{sub.activityName}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[10px] font-semibold block">Masa &amp; Tempat:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {sub.startDateTime ? new Date(sub.startDateTime).toLocaleDateString('ms-MY') : 'N/A'} @ {sub.venue || 'N/A'}
+                            </span>
+                          </div>
+                          {sub.certificateFileUrl && (
+                            <div className="sm:col-span-2">
+                              <a
+                                href={sub.certificateFileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>{sub.certificateFileName || dict.openStudentCertificate}</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Lecturer Mark Approval & Actions */}
+                        <div className="pt-2 border-t border-amber-100 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                              Markah Diluluskan:
+                            </label>
+                            <input
+                              type="number"
+                              step="0.05"
+                              min="0"
+                              max="1.0"
+                              value={currentInputScore}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setReviewScoreInputs((prev) => ({
+                                  ...prev,
+                                  [sub.id]: isNaN(val) ? 0 : Math.min(1.0, Math.max(0, val)),
+                                }));
+                              }}
+                              className="w-20 px-2 py-1 text-xs font-black text-center rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white"
+                            />
+                            <span className="text-[10px] text-slate-400">(Skala: {suggestedScore.toFixed(3)})</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRejectModal(sub)}
+                              disabled={isProcessing}
+                              className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Tolak</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApproveKoko(sub)}
+                              disabled={isProcessing}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition-all shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{isProcessing ? 'Menyimpan...' : 'Luluskan & Tambah Markah'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Jati Diri Management Quick Widget (For Dr. Elmi & Puan Suhaina) */}
@@ -1177,79 +1205,52 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       {/* MODAL: REJECTION REASON FOR LECTURER */}
       {rejectingSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 dark:border-rose-900 animate-in fade-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5" />
-                <span>Tolak Permohonan Kokurikulum</span>
               </div>
-              <button
-                onClick={() => setRejectingSub(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700">
-                <div className="font-bold text-slate-900 dark:text-white">{rejectingSub.activityName}</div>
-                <div className="text-[11px] text-slate-500">
-                  Pelajar: {rejectingSub.studentName} ({rejectingSub.matricNumber}) • Set {getStudentSetNumber(rejectingSub)}
-                </div>
-              </div>
-
               <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
-                  Nyatakan Sebab Penolakan (Akan dipaparkan kepada pelajar):
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="cth: Sijil lampiran tidak jelas atau nama pelajar tidak tertera pada sijil pengesahan."
-                  value={rejectionReasonInput}
-                  onChange={(e) => setRejectionReasonInput(e.target.value)}
-                  className="w-full p-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500"
-                />
-              </div>
-
-              {/* Quick Preset Reason Buttons */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Pilih Sebab Pantas:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'Sijil lampiran tidak jelas / tidak sah',
-                    'Butiran masa/tempat tidak mencukupi',
-                    'Tahap peringkat aktiviti tidak betul',
-                    'Bukan dalam tempoh pengajian ASASIpintar',
-                  ].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setRejectionReasonInput(p)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium cursor-pointer"
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Tolak Permohonan Kokurikulum?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                  {rejectingSub.activityName} • {rejectingSub.studentName} ({rejectingSub.matricNumber})
+                </p>
               </div>
             </div>
 
-            <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Nyatakan Sebab Penolakan / Catatan Pembetulan:
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                placeholder="Contoh: Sijil yang dimuat naik tidak jelas / Tarikh aktiviti tidak sepadan dengan rekod rasmi."
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+              />
+              <span className="text-[10px] text-slate-400">
+                Catatan ini akan dipaparkan terus kepada pelajar dalam tab "Ditolak / Pembetulan".
+              </span>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setRejectingSub(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                disabled={Boolean(isReviewingKoko)}
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer disabled:opacity-50"
               >
-                Sahkan Penolakan
+                {isReviewingKoko ? 'Memproses...' : 'Sahkan Penolakan'}
               </button>
             </div>
           </div>

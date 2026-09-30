@@ -120,16 +120,16 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
   const userEmailLower = (user.email || '').toLowerCase().trim();
   const userMatricUpper = (user.matricNumber || '').toUpperCase().trim();
+  const userMatricDerived = userMatricUpper || (userEmailLower.includes('@') ? userEmailLower.split('@')[0].toUpperCase() : '');
 
   const isMyKokoSub = (s: KokoSubmissionItem) => {
     if (!s) return false;
     const sEmail = (s.studentEmail || '').toLowerCase().trim();
     const sMatric = (s.matricNumber || '').toUpperCase().trim();
-    return (
-      (userEmailLower && sEmail === userEmailLower) ||
-      (userMatricUpper && sMatric === userMatricUpper) ||
-      (userEmailLower && sEmail.includes('ap05710') && sEmail.includes('ap05710'))
-    );
+    const emailMatch = userEmailLower && sEmail === userEmailLower;
+    const matricMatch = Boolean(userMatricDerived && (sMatric === userMatricDerived || sEmail.includes(userMatricDerived.toLowerCase())));
+    const nameMatch = Boolean(user.name && s.studentName && user.name.toLowerCase().trim() === s.studentName.toLowerCase().trim());
+    return emailMatch || matricMatch || nameMatch;
   };
 
   const myApprovedSubs = kokoSubmissionsList.filter((s) => isMyKokoSub(s) && s.status === 'approved');
@@ -165,7 +165,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
   const myKoko = kokoRecords.find((k) => {
     const kEmail = (k.studentEmail || '').toLowerCase().trim();
     const kMatric = (k.matricNumber || '').toUpperCase().trim();
-    return (userEmailLower && kEmail === userEmailLower) || (userMatricUpper && kMatric === userMatricUpper);
+    const emailMatch = userEmailLower && kEmail === userEmailLower;
+    const matricMatch = Boolean(userMatricDerived && (kMatric === userMatricDerived || kEmail.includes(userMatricDerived.toLowerCase())));
+    const nameMatch = Boolean(user.name && k.studentName && user.name.toLowerCase().trim() === k.studentName.toLowerCase().trim());
+    return emailMatch || matricMatch || nameMatch;
   });
 
   const jatiDiriScore = myKoko?.jatiDiriScore !== null && myKoko?.jatiDiriScore !== undefined && Number(myKoko.jatiDiriScore) > 0
