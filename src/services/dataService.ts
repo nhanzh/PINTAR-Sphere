@@ -185,17 +185,45 @@ function registerSyncListener<T>(targetKey: string, callback: (data: T) => void)
 
 class DataService {
   // --- RESOURCES ---
-  public subscribeResources(callback: (resources: ResourceItem[]) => void): () => void {
+  private mergeWithInitialResources(overrides: ResourceItem[]): ResourceItem[] {
     const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_resource_ids', []));
-    // Initial emission from local storage/fallback
-    const localData = getLocal<ResourceItem[]>(KEYS.RESOURCES, INITIAL_RESOURCES).filter(
-      (r) => !deletedIds.has(r.id)
-    );
+    const map = new Map<string, ResourceItem>();
+
+    INITIAL_RESOURCES.forEach((item) => {
+      if (!deletedIds.has(item.id)) {
+        map.set(item.id, { ...item });
+      }
+    });
+
+    const currentLocal = getLocal<ResourceItem[]>(KEYS.RESOURCES, []);
+    if (Array.isArray(currentLocal)) {
+      currentLocal.forEach((item) => {
+        if (item && item.id && !deletedIds.has(item.id)) {
+          map.set(item.id, { ...map.get(item.id), ...item });
+        }
+      });
+    }
+
+    if (Array.isArray(overrides)) {
+      overrides.forEach((item) => {
+        if (item && item.id && !deletedIds.has(item.id)) {
+          map.set(item.id, { ...map.get(item.id), ...item });
+        }
+      });
+    }
+
+    return Array.from(map.values());
+  }
+
+  public subscribeResources(callback: (resources: ResourceItem[]) => void): () => void {
+    const rawLocal = getLocal<ResourceItem[]>(KEYS.RESOURCES, INITIAL_RESOURCES);
+    const localData = this.mergeWithInitialResources(rawLocal);
+    saveLocal(KEYS.RESOURCES, localData);
     callback(localData);
 
     const unsubSync = registerSyncListener<ResourceItem[]>(KEYS.RESOURCES, (items) => {
-      const currentDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_resource_ids', []));
-      callback(items.filter((r) => !currentDeleted.has(r.id)));
+      const merged = this.mergeWithInitialResources(items || []);
+      callback(merged);
     });
 
     try {
@@ -203,15 +231,13 @@ class DataService {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const currentDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_resource_ids', []));
           const items: ResourceItem[] = [];
           snapshot.forEach((docSnap) => {
-            if (!currentDeleted.has(docSnap.id)) {
-              items.push({ id: docSnap.id, ...(docSnap.data() as any) });
-            }
+            items.push({ id: docSnap.id, ...(docSnap.data() as any) });
           });
-          saveLocal(KEYS.RESOURCES, items);
-          callback(items);
+          const merged = this.mergeWithInitialResources(items);
+          saveLocal(KEYS.RESOURCES, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore resources listener fallback:', error.message);
@@ -249,6 +275,8 @@ class DataService {
 
     this.addNotification({
       recipientEmail: 'all',
+      senderEmail: resource.uploaderEmail,
+      targetSets: resource.targetSets,
       type: 'resource_uploaded',
       title: 'Nota & Bahan Pembelajaran Baharu',
       message: `${resource.uploadedBy} telah memuat naik bahan baharu: "${resource.title}" (${resource.subject}).`,

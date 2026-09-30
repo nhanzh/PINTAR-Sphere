@@ -39,11 +39,11 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
   // Default to lecturer's taught subject or first subject (Kimia I)
   const lecturerSubject = SUBJECTS.find((s) => s.id === user.taughtSubject || s.code === user.taughtSubjectCode) || SUBJECTS[0];
   const defaultSubjectId = useMemo(() => {
-    if (user.role === 'lecturer') {
+    if (user.role === 'lecturer' && !isAdminHub) {
       return lecturerSubject.id;
     }
-    return SUBJECTS[0].id;
-  }, [user.role, lecturerSubject.id]);
+    return 'all';
+  }, [user.role, isAdminHub, lecturerSubject.id]);
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(defaultSubjectId);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -53,46 +53,72 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
 
   // Filter resources
   const filteredResources = resources.filter((res) => {
-    // If student, only show resources targeted to 'all' or this student's set
+    // 1. If student, check if resource is targeted to student's set
     if (isStudent) {
-      const isTargeted = res.targetSets.some((ts) => {
-        const lower = ts.toLowerCase().trim();
-        if (lower === 'all' || lower === 'set all') return true;
-        const match = lower.match(/\d+/);
-        if (match) {
-          return Number(match[0]) === studentSet;
-        }
-        return lower === String(studentSet) || lower === `set ${studentSet}`;
-      });
-      if (!isTargeted) return false;
+      if (res.targetSets && res.targetSets.length > 0) {
+        const isTargeted = res.targetSets.some((ts) => {
+          if (!ts) return true;
+          const lower = ts.toLowerCase().trim();
+          if (
+            lower === 'all' ||
+            lower === 'set all' ||
+            lower.includes('all') ||
+            lower.includes('semua') ||
+            lower === 'semua set'
+          ) {
+            return true;
+          }
+          const match = lower.match(/\d+/);
+          if (match) {
+            return Number(match[0]) === studentSet;
+          }
+          return lower === String(studentSet) || lower === `set ${studentSet}`;
+        });
+        if (!isTargeted) return false;
+      }
     }
 
-    // For non-admin lecturers, only show materials matching their taught subject code
+    // 2. Subject filter
     if (!isStudent && user.role === 'lecturer' && !isAdminHub) {
-      if (res.courseCode !== lecturerSubject.code) {
+      // Non-admin lecturers see materials matching their course or general Hub materials
+      if (
+        res.courseCode !== lecturerSubject.code &&
+        res.courseCode !== 'ASASI-HUB' &&
+        res.courseCode !== 'GENERAL' &&
+        res.courseCode !== 'UMUM'
+      ) {
         return false;
       }
-    } else {
-      // Filter strictly by active subject
+    } else if (selectedSubjectId !== 'all') {
+      // Students or Hub Admin filtering by active subject tab
       const subject = SUBJECTS.find((s) => s.id === selectedSubjectId);
-      if (subject && res.courseCode !== subject.code) {
-        return false;
+      if (subject) {
+        const matchesCode = res.courseCode === subject.code;
+        const isHubGeneral =
+          res.courseCode === 'ASASI-HUB' ||
+          res.courseCode === 'GENERAL' ||
+          res.courseCode === 'UMUM' ||
+          res.uploaderEmail === 'asasipintarhub@gmail.com';
+        if (!matchesCode && !isHubGeneral) {
+          return false;
+        }
       }
     }
 
-    // Filter by category
+    // 3. Category filter
     if (selectedCategory !== 'all' && res.category !== selectedCategory) {
       return false;
     }
 
-    // Filter by search query
+    // 4. Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = res.title.toLowerCase().includes(q);
       const matchDesc = res.description.toLowerCase().includes(q);
       const matchTags = res.tags?.some((t) => t.toLowerCase().includes(q));
       const matchCode = res.courseCode.toLowerCase().includes(q);
-      if (!matchTitle && !matchDesc && !matchTags && !matchCode) return false;
+      const matchUploader = res.uploadedBy.toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc && !matchTags && !matchCode && !matchUploader) return false;
     }
 
     return true;
@@ -175,13 +201,31 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
         )}
       </div>
 
-      {/* 8 Subjects Horizontal Filter Bar (Only for Students) */}
-      {isStudent && (
+      {/* Horizontal Subject Filter Bar (For Students & Hub Admin) */}
+      {(isStudent || isAdminHub) && (
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-            {dict.subjectFilterLabel || dict.filterSubject}
+            {dict.subjectFilterLabel || 'Tapis Subjek / Subject Filter'}
           </label>
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              onClick={() => setSelectedSubjectId('all')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                selectedSubjectId === 'all'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span>{dict.allSubjects || 'Semua Subjek'}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded ${
+                  selectedSubjectId === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                All
+              </span>
+            </button>
+
             {SUBJECTS.map((sub) => (
               <button
                 key={sub.id}
