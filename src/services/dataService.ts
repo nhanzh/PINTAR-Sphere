@@ -501,21 +501,9 @@ class DataService {
             });
           });
 
-          // Merge local and remote items by ID so no submission gets lost
-          const currentLocal = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
-          const map = new Map<string, SubmissionRecord>();
-          remoteItems.forEach((item) => map.set(item.id, item));
-          currentLocal.forEach((item) => {
-            if (!map.has(item.id)) {
-              map.set(item.id, item);
-            }
-          });
-
-          const merged = Array.from(map.values());
-          merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-
-          saveLocal(KEYS.SUBMISSIONS, merged);
-          callback(merged);
+          remoteItems.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+          saveLocal(KEYS.SUBMISSIONS, remoteItems);
+          callback(remoteItems);
         },
         (error) => {
           console.warn('Firestore submissions listener fallback:', error.message);
@@ -966,21 +954,9 @@ class DataService {
             });
           });
 
-          // Merge local and remote items by ID so no submission gets lost
-          const currentLocal = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
-          const map = new Map<string, KokoSubmissionItem>();
-          remoteItems.forEach((item) => map.set(item.id, item));
-          currentLocal.forEach((item) => {
-            if (!map.has(item.id)) {
-              map.set(item.id, item);
-            }
-          });
-
-          const merged = Array.from(map.values());
-          merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-
-          saveLocal(KEYS.KOKO_SUBMISSIONS, merged);
-          callback(merged);
+          remoteItems.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+          saveLocal(KEYS.KOKO_SUBMISSIONS, remoteItems);
+          callback(remoteItems);
         },
         (error) => {
           console.warn('Firestore kokoSubmissions listener fallback:', error.message);
