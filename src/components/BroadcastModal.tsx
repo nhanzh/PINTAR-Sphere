@@ -11,6 +11,10 @@ import {
   Send,
   CheckCircle2,
   Users,
+  Radio,
+  Sparkles,
+  Eye,
+  Megaphone,
 } from 'lucide-react';
 
 interface BroadcastModalProps {
@@ -36,6 +40,43 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
 
   if (!isOpen) return null;
 
+  const subjectName = lecturer.taughtSubjectName || 'Chemistry I';
+  const subjectCode = lecturer.taughtSubjectCode || 'PNAP0133';
+
+  // Quick message template generator
+  const applyTemplate = (tplType: 'venue' | 'deadline' | 'reschedule' | 'lab') => {
+    if (tplType === 'venue') {
+      setTitle(lang === 'ms' ? `Pertukaran Dewan Kuliah (${subjectCode})` : `Class Hall Relocation (${subjectCode})`);
+      setMessage(
+        lang === 'ms'
+          ? `Perhatian pelajar, kuliah ${subjectName} dipindahkan ke Dewan Kuliah Utama (DKU 1) berkuat kuasa serta-merta.`
+          : `Attention students, ${subjectName} lecture has been relocated to Main Lecture Hall (DKU 1) effective immediately.`
+      );
+    } else if (tplType === 'deadline') {
+      setTitle(lang === 'ms' ? `Lanjutan Tarikh Akhir Tugasan (${subjectCode})` : `Assignment Deadline Extension (${subjectCode})`);
+      setMessage(
+        lang === 'ms'
+          ? `Tarikh akhir penghantaran bagi ${subjectName} telah dilanjutkan sehingga Ahad ini, jam 11:59 malam.`
+          : `The submission deadline for ${subjectName} coursework has been extended until this Sunday, 11:59 PM.`
+      );
+    } else if (tplType === 'reschedule') {
+      setPriority('reschedule');
+      setTitle(lang === 'ms' ? `Notis Penjadualan Semula Kelas (${subjectCode})` : `Class Rescheduling Notice (${subjectCode})`);
+      setMessage(
+        lang === 'ms'
+          ? `Kelas ${subjectName} pada hari ini digantikan ke sesi dalam talian / tarikh ganti yang akan dimaklumkan.`
+          : `Today's ${subjectName} class will be rescheduled or conducted online. Further details to follow.`
+      );
+    } else if (tplType === 'lab') {
+      setTitle(lang === 'ms' ? `Peringatan Sesi Makmal / Amali (${subjectCode})` : `Laboratory Practical Session Reminder (${subjectCode})`);
+      setMessage(
+        lang === 'ms'
+          ? `Sila bawa kot makmal, gogal keselamatan, dan manual amali untuk sesi makmal ${subjectName}.`
+          : `Please bring your lab coat, safety goggles, and practical manual for the ${subjectName} lab session.`
+      );
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return;
@@ -47,13 +88,13 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
         message: message.trim(),
         senderName: lecturer.name,
         senderEmail: lecturer.email,
-        subjectCode: lecturer.taughtSubjectCode || 'PNAP0133',
-        subjectName: lecturer.taughtSubjectName || 'Chemistry I',
+        subjectCode,
+        subjectName,
         targetSet,
         priority,
       });
 
-      setSuccessMsg(dict.broadcastSentSuccess);
+      setSuccessMsg(dict.broadcastSentSuccess || 'Hebahan berjaya dihantar secara langsung ke portal pelajar!');
       if (onBroadcastSent) {
         onBroadcastSent(newNotice);
       }
@@ -64,7 +105,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
         setTitle('');
         setMessage('');
         onClose();
-      }, 1200);
+      }, 1300);
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);
@@ -72,147 +113,259 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-md overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200/80 dark:border-slate-800 my-auto animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Bell className="w-5 h-5" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Radio className="w-5 h-5 animate-pulse" />
+              </div>
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-ping" />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{dict.broadcastNotice}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {lecturer.taughtSubjectName} • {lecturer.name}
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  {dict.broadcastNotice || 'Hantar Hebahan Segera ke Pelajar'}
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
+                  LIVE BROADCAST
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {subjectName} ({subjectCode}) • {lecturer.name}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Vendor - Customer Connection Notice */}
-        <div className="mt-4 p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-300 text-xs leading-relaxed flex items-start gap-2.5">
-          <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-          <div>{dict.liveDispatchDesc}</div>
+        {/* Live Broadcast Description Badge */}
+        <div className="mt-4 p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-amber-950 dark:text-amber-200 text-xs leading-relaxed flex items-start gap-3">
+          <Megaphone className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <strong>Peringatan Pensyarah:</strong> Hebahan yang dihantar akan muncul secara langsung (*real-time banner & alert*) pada skrin portal semua pelajar yang dipilih sertamerta.
+          </div>
         </div>
 
         {successMsg ? (
-          <div className="my-8 text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto animate-bounce">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="my-10 text-center space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20 animate-bounce">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">{successMsg}</div>
+            <div className="text-base font-black text-slate-900 dark:text-white">{successMsg}</div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Notis hebahan sedang dipaparkan di portal pelajar secara masa nyata.
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Template Selector Chips */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Template Pantas (Tekan untuk isi borang automatik)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => applyTemplate('venue')}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-all border border-slate-200 dark:border-slate-700 cursor-pointer"
+                >
+                  🏛️ Tukar Dewan Kuliah
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate('reschedule')}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-all border border-slate-200 dark:border-slate-700 cursor-pointer"
+                >
+                  ⏰ Penjadualan Semula
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate('deadline')}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-all border border-slate-200 dark:border-slate-700 cursor-pointer"
+                >
+                  📅 Lanjutan Masa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate('lab')}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-all border border-slate-200 dark:border-slate-700 cursor-pointer"
+                >
+                  🧪 Sesi Makmal
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Target Set Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {dict.broadcastTo}
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>{dict.broadcastTo || 'Sasaran Kumpulan Pelajar'}</span>
                 </label>
                 <select
                   value={targetSet}
                   onChange={(e) => setTargetSet(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 >
-                  <option value="all">{dict.allSets}</option>
+                  <option value="all">🌟 Semua Pelajar (Set 1 - Set 11)</option>
                   {Array.from({ length: 11 }, (_, i) => i + 1).map((s) => (
                     <option key={s} value={String(s)}>
-                      Set {s}
+                      🎯 Set {s} Sahaja
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Priority Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {dict.priority}
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                  <span>{dict.priority || 'Tahap Keutamaan'}</span>
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setPriority('urgent')}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
+                    className={`py-2 px-1.5 rounded-xl text-[11px] font-extrabold transition-all border cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       priority === 'urgent'
-                        ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 ring-1 ring-rose-400'
+                        ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 dark:border-rose-700 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/50 shadow-xs'
                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    🚨 {dict.priorityUrgent}
+                    <span>🚨</span>
+                    <span>Kecemasan</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPriority('reschedule')}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
+                    className={`py-2 px-1.5 rounded-xl text-[11px] font-extrabold transition-all border cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       priority === 'reschedule'
-                        ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400'
+                        ? 'bg-amber-50 dark:bg-amber-950/70 border-amber-400 dark:border-amber-700 text-amber-800 dark:text-amber-300 ring-2 ring-amber-500/50 shadow-xs'
                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    🔄 {dict.priorityReschedule}
+                    <span>🔄</span>
+                    <span>Jadual Semula</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPriority('info')}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
+                    className={`py-2 px-1.5 rounded-xl text-[11px] font-extrabold transition-all border cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       priority === 'info'
-                        ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400'
+                        ? 'bg-blue-50 dark:bg-blue-950/70 border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/50 shadow-xs'
                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    ℹ️ {dict.priorityInfo}
+                    <span>ℹ️</span>
+                    <span>Makluman</span>
                   </button>
                 </div>
               </div>
             </div>
 
+            {/* Title Input */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {dict.noticeTitle}
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Tajuk Hebahan / Notice Title
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Lab Report submission deadline extended"
-                className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                placeholder="cth: Pertukaran Dewang Kuliah bagi Kuliah Kimia I"
+                className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
 
+            {/* Message Textarea */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {dict.noticeMessage}
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Kandungan Mesej / Message Content
               </label>
               <textarea
                 required
                 rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Detailed instructions for students..."
-                className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 resize-none"
+                placeholder="Masukkan maklumat terperinci untuk perhatian pelajar..."
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 resize-none shadow-xs leading-relaxed"
               />
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            {/* Live Student View Simulation Box */}
+            <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800 shadow-inner">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <Eye className="w-3 h-3" />
+                  <span>Simulasi Paparan Pelajar (Student Live Preview)</span>
+                </span>
+                <span className="text-amber-400">
+                  {targetSet === 'all' ? 'Semua Set' : `Set ${targetSet}`}
+                </span>
+              </div>
+
+              <div
+                className={`p-3 rounded-xl border text-xs leading-snug transition-all ${
+                  priority === 'urgent'
+                    ? 'bg-rose-950/80 border-rose-600/80 text-rose-100'
+                    : priority === 'reschedule'
+                    ? 'bg-amber-950/80 border-amber-600/80 text-amber-100'
+                    : 'bg-indigo-950/80 border-indigo-600/80 text-indigo-100'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                      priority === 'urgent'
+                        ? 'bg-rose-500 text-white'
+                        : priority === 'reschedule'
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-indigo-500 text-white'
+                    }`}
+                  >
+                    {priority === 'urgent'
+                      ? '🚨 Kecemasan'
+                      : priority === 'reschedule'
+                      ? '🔄 Penjadualan Semula'
+                      : 'ℹ️ Makluman'}
+                  </span>
+                  <span className="font-bold text-[11px]">
+                    {lecturer.name} ({subjectName})
+                  </span>
+                </div>
+                <div>
+                  <strong>{title || 'Tajuk Hebahan Pelajar'}</strong>: {message || 'Kandungan mesej hebahan akan muncul di sini secara masa nyata...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {dict.cancelBtn}
+                {dict.cancelBtn || 'Batal'}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !title.trim() || !message.trim()}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-600/30 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:opacity-50 text-white text-xs font-extrabold transition-all flex items-center gap-2 shadow-lg shadow-orange-500/25 cursor-pointer"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? '...' : dict.sendBroadcast}</span>
+                <Send className="w-4 h-4" />
+                <span>{isSubmitting ? 'Penghantaran...' : 'Hantar Hebahan Masa Nyata'}</span>
               </button>
             </div>
           </form>
@@ -221,3 +374,4 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
     </div>
   );
 };
+

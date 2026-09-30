@@ -48,6 +48,7 @@ import {
 import { ResourceItem } from '../types.ts';
 import { dataService } from '../services/dataService.ts';
 import { MaterialUploadModal } from './MaterialUploadModal.tsx';
+import { BroadcastModal } from './BroadcastModal.tsx';
 import { calculateSuggestedKokoScore } from '../utils/kokoScoring.ts';
 import { openOrDownloadSubmissionFile } from '../utils/fileUtils.ts';
 import {
@@ -102,7 +103,15 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   }, [broadcasts]);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isLocalBroadcastModalOpen, setIsLocalBroadcastModalOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<{ id: string; title: string } | null>(null);
+
+  const handleOpenBroadcast = () => {
+    if (onOpenBroadcastModal) {
+      onOpenBroadcastModal();
+    }
+    setIsLocalBroadcastModalOpen(true);
+  };
   const [kokoSubmissions, setKokoSubmissions] = useState<KokoSubmissionItem[]>([]);
   const [kokoSetFilter, setKokoSetFilter] = useState<string>('all');
   const [reviewScoreInputs, setReviewScoreInputs] = useState<Record<string, number>>({});
@@ -281,11 +290,17 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
             <div className="mt-5 flex flex-wrap gap-2.5">
               {/* Broadcast Dispatch Button (Lecturer can dispatch alerts or rescheduling announcements directly to students) */}
               <button
-                onClick={onOpenBroadcastModal}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/30 cursor-pointer"
+                onClick={handleOpenBroadcast}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-extrabold text-xs transition-all flex items-center gap-2 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 hover:-translate-y-0.5 cursor-pointer ring-2 ring-amber-400/40"
               >
-                <Radio className="w-3.5 h-3.5" />
-                <span>{dict.broadcastNotice}</span>
+                <div className="relative flex items-center justify-center">
+                  <Radio className="w-4 h-4 text-white animate-pulse" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <span>{dict.broadcastNotice || 'Hantar Hebahan Segera ke Pelajar'}</span>
+                <span className="text-[10px] bg-black/25 px-2 py-0.5 rounded-full font-black border border-white/20 uppercase tracking-wider">
+                  LIVE
+                </span>
               </button>
 
               <button
@@ -331,64 +346,81 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
       </div>
 
       {/* Live Broadcast Dispatches Monitor */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-colors">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-              <Radio className="w-4 h-4" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm transition-all">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-rose-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-300/30">
+              <Radio className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">{dict.recentBroadcasts}</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">{dict.liveDispatchDesc}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  {dict.recentBroadcasts || 'Papan Hebahan Masa Nyata Pelajar'}
+                </h2>
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 text-[10px] font-black border border-emerald-300/60 dark:border-emerald-700/60">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>SALURAN HEBAHAN AKTIF</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {dict.liveDispatchDesc || 'Hebahan yang dihantar dipaparkan secara langsung pada skrin portal semua pelajar.'}
+              </p>
             </div>
           </div>
           <button
-            onClick={onOpenBroadcastModal}
-            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            onClick={handleOpenBroadcast}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-extrabold text-xs transition-all flex items-center gap-2 shadow-md shadow-orange-500/25 hover:scale-[1.02] cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>{dict.newBroadcastBtnText}</span>
+            <span>+ {dict.newBroadcastBtnText || 'Hantar Hebahan Baharu'}</span>
           </button>
         </div>
 
-        <div className="mt-4 space-y-2.5">
+        <div className="mt-4 space-y-3">
           {localBroadcasts.slice(0, 5).map((b) => (
             <div
               key={b.id}
-              className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-start justify-between gap-4"
+              className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                    className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border ${
                       b.priority === 'urgent'
-                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                        ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300/60 dark:border-rose-800'
                         : b.priority === 'reschedule'
-                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                        : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
+                        ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border-amber-300/60 dark:border-amber-800'
+                        : 'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300/60 dark:border-blue-800'
                     }`}
                   >
                     {b.priority === 'urgent'
-                      ? dict.priorityUrgent
+                      ? '🚨 ' + (dict.priorityUrgent || 'Kecemasan')
                       : b.priority === 'reschedule'
-                      ? dict.priorityReschedule
-                      : dict.priorityInfo}
+                      ? '🔄 ' + (dict.priorityReschedule || 'Jadual Semula')
+                      : 'ℹ️ ' + (dict.priorityInfo || 'Makluman')}
                   </span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">{b.title}</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    • {dict.targetSetPrefix}: <strong>{b.targetSet === 'all' ? dict.allSets : `Set ${b.targetSet}`}</strong>
+                  <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                    {b.title}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                    • Sasaran: <strong className="text-indigo-600 dark:text-indigo-400">{b.targetSet === 'all' ? (dict.allSets || 'Semua Set') : `Set ${b.targetSet}`}</strong>
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300">{b.message}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                  {b.message}
+                </p>
               </div>
 
-              <div className="text-right shrink-0 space-y-1">
-                <span className="text-[11px] font-mono text-slate-400 dark:text-slate-400 block">
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                   {new Date(b.createdAt).toLocaleDateString('en-GB')}{' '}
                   {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <div className="flex items-center justify-end gap-2">
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{dict.dispatchedToStudents}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>Diterima Pelajar</span>
+                  </span>
                   <button
                     type="button"
                     disabled={cancellingBroadcastId === b.id}
@@ -398,7 +430,6 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                       const targetId = b.id;
                       const targetTitle = b.title;
                       setCancellingBroadcastId(targetId);
-                      // Immediately remove optimistically from UI
                       setLocalBroadcasts((prev) => prev.filter((item) => item.id !== targetId));
                       try {
                         await dataService.cancelBroadcast(targetId);
@@ -413,18 +444,36 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                         setCancellingBroadcastId(null);
                       }
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-[10px] font-extrabold transition-all cursor-pointer disabled:opacity-50"
                     title="Batal Hebahan Ini"
                   >
-                    {cancellingBroadcastId === b.id ? 'Membatalkan...' : 'Batal Siaran'}
+                    {cancellingBroadcastId === b.id ? 'Membatalkan...' : 'Padam Siaran'}
                   </button>
                 </div>
               </div>
             </div>
           ))}
           {localBroadcasts.length === 0 && (
-            <div className="p-4 text-center text-xs text-slate-400">
-              Tiada siaran hebahan aktif buat masa ini. Hebahan akan luput secara automatik selepas 24 jam.
+            <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                <Radio className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Tiada Hebahan Aktif Dihantar Lagi
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Tekan butang di atas untuk memulakan siaran hebahan mesra pelajar secara langsung.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenBroadcast}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm cursor-pointer transition-all inline-flex items-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Hantar Hebahan Pertama</span>
+              </button>
             </div>
           )}
         </div>
@@ -992,6 +1041,13 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         user={user}
+      />
+
+      {/* Lecturer Broadcast Modal */}
+      <BroadcastModal
+        isOpen={isLocalBroadcastModalOpen}
+        onClose={() => setIsLocalBroadcastModalOpen(false)}
+        lecturer={user}
       />
 
       {/* Confirmation Modal for Deleting Material (No window.confirm, safe in iframe) */}
