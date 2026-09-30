@@ -175,8 +175,9 @@ function AppContent() {
     }
   };
 
-  // Subscribe to real-time data from dataService (Firestore + Multi-tab sync + Local storage)
+  // Subscribe to real-time data from dataService (Firestore + Multi-tab sync + Local storage) keyed by user UID/email
   useEffect(() => {
+    const userKey = user?.uid || user?.email || 'guest';
     const unsubResources = dataService.subscribeToResources((data) => setResources(data));
     const unsubSchedules = dataService.subscribeToSchedules((data) => setSchedules(data));
     const unsubDeadlines = dataService.subscribeToDeadlines((data) => setDeadlines(data));
@@ -196,7 +197,7 @@ function AppContent() {
       unsubPosts();
       unsubBroadcasts();
     };
-  }, []);
+  }, [user?.uid, user?.email]);
 
   // Subscribe to user notifications & validate server session
   useEffect(() => {

@@ -33,7 +33,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   lockedPortal,
 }) => {
   const { lang, setLang, dict } = useLanguage();
-  const activePortal = lockedPortal || initialPortal || 'student';
+  const [portalChoice, setPortalChoice] = useState<'student' | 'lecturer'>(initialPortal || 'student');
+  const activePortal = lockedPortal || portalChoice;
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   const handleQuickDemoLogin = async (acc: DummyTestAccount) => {
@@ -324,6 +325,59 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   : 'ASASIpintar Faculty & Admin Portal Access')}
           </p>
         </div>
+
+        {/* Portal Selection Switcher Cards */}
+        {!lockedPortal && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setPortalChoice('student');
+                setErrorMessage('');
+                setSuccessMessage('');
+              }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 ${
+                activePortal === 'student'
+                  ? 'bg-gradient-to-r from-blue-700 to-indigo-800 text-white border-blue-600 shadow-lg ring-2 ring-blue-500/30'
+                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-blue-300'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activePortal === 'student' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'}`}>
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-black">{dict.studentPortal}</div>
+                <div className={`text-[11px] ${activePortal === 'student' ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                  Student Portal Gateway
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPortalChoice('lecturer');
+                setErrorMessage('');
+                setSuccessMessage('');
+              }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 ${
+                activePortal === 'lecturer'
+                  ? 'bg-gradient-to-r from-emerald-700 to-teal-800 text-white border-emerald-600 shadow-lg ring-2 ring-emerald-500/30'
+                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activePortal === 'lecturer' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'}`}>
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-black">{dict.lecturerPortal}</div>
+                <div className={`text-[11px] ${activePortal === 'lecturer' ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                  Lecturer Portal Gateway
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Dedicated Portal Authentication Card */}
         <div className="bg-white dark:bg-slate-800/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xl overflow-hidden transition-colors">
