@@ -41,6 +41,7 @@ import {
   FileText,
   MapPin,
   Shield,
+  Sparkles,
 } from 'lucide-react';
 import { ResourceItem } from '../types.ts';
 import { dataService } from '../services/dataService.ts';
@@ -268,7 +269,15 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                 className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-100 font-bold text-xs border border-emerald-400/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Calculator className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Kemas Kini Markah Pelajar</span>
+                <span>{dict.updateStudentMarks}</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ai-assistant')}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/30 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>PINTAR AI Mentor</span>
               </button>
             </div>
           </div>
@@ -404,7 +413,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Permohonan Semakan Aktiviti Kokurikulum Pelajar</span>
+                    <span>{dict.kokoReviewRequests}</span>
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 text-[11px] font-extrabold">
                       {pendingKokoList.length} Menunggu
                     </span>
@@ -502,7 +511,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                               className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800"
                             >
                               <FileText className="w-3.5 h-3.5" />
-                              <span>{sub.certificateFileName || 'Buka Sijil Penyertaan Pelajar'}</span>
+                              <span>{sub.certificateFileName || dict.openStudentCertificate}</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           </div>
@@ -512,7 +521,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                       {/* Approval & Score Selector */}
                       <div className="pt-2 border-t border-amber-100 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Syor Markah:</span>
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{dict.suggestedScore}:</span>
                           <button
                             type="button"
                             onClick={() => setReviewScoreInputs((prev) => ({ ...prev, [sub.id]: matrixScore }))}

@@ -320,8 +320,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   ? 'Laman Pengesahan Rasmi Pelajar Pra-Universiti ASASIpintar UKM (@siswa.ukm.edu.my)'
                   : 'Official Authentication Gateway for Enrolled ASASIpintar Students (@siswa.ukm.edu.my)')
               : (lang === 'ms'
-                  ? 'Laman Pengesahan Rasmi Tenaga Pengajar & Pentadbir ASASIpintar UKM (@ukm.edu.my)'
-                  : 'Official Authentication Gateway for UKM ASASIpintar Faculty Members (@ukm.edu.my)')}
+                  ? 'Laman Log Masuk Pensyarah & Pentadbir ASASIpintar UKM'
+                  : 'ASASIpintar Faculty & Admin Portal Access')}
           </p>
         </div>
 
@@ -720,8 +720,8 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                   ? 'Laman portal pelajar disahkan khusus untuk 318 pelajar kohort rasmi ASASIpintar UKM.'
                   : 'Student portal gateway restricted to official 318 ASASIpintar cohort students.')
               : (lang === 'ms'
-                  ? 'Laman portal pensyarah disahkan khusus untuk emel fakulti rasmi ASASIpintar UKM.'
-                  : 'Lecturer portal gateway restricted to authorized ASASIpintar faculty emails.')}
+                  ? 'Akses portal pensyarah rasmi ASASIpintar UKM.'
+                  : 'Official ASASIpintar faculty portal access.')}
           </span>
         </div>
       </div>

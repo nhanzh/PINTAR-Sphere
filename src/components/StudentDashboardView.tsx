@@ -220,7 +220,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     {displayGpa >= 3.75 ? dict.deansList : 'Lulus Cemerlang'}
                   </span>
                 ) : (
-                  <span className="text-amber-300/90 font-medium">Menunggu Pensyarah</span>
+                  <span className="text-amber-300/90 font-medium">{dict.waitingForLecturer}</span>
                 )}
               </div>
             </div>
@@ -235,7 +235,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                     Gred {kokoGrade} • {kokoBand}
                   </span>
                 ) : (
-                  <span className="text-amber-300/90 font-medium">Menunggu Pensyarah</span>
+                  <span className="text-amber-300/90 font-medium">{dict.waitingForLecturer}</span>
                 )}
               </div>
             </div>
@@ -418,10 +418,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                       <span>
                         {isEvaluated
                           ? `Dinilai oleh pensyarah: ${gradeRecord.updatedBy || assignedLecturer}`
-                          : `Pensyarah kursus: ${assignedLecturer}`}
+                          : `${dict.courseLecturer}: ${assignedLecturer}`}
                       </span>
                       <span className="font-semibold">
-                        {isEvaluated ? `${score}% / 100% Markah Diperoleh` : '0% / 100%'}
+                        {isEvaluated ? `${score}% / 100% ${dict.marksAchieved}` : '0% / 100%'}
                       </span>
                     </div>
                   </div>
@@ -437,7 +437,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                 <Award className="w-4 h-4 text-amber-500" />
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Kemajuan Markah Kokurikulum & Jati Diri (10%)
+                    {dict.kokoProgressTitle}
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Pecahan: Pembangunan Jati Diri (7.0%) dan Aktiviti Kokurikulum (3.0%).
@@ -453,7 +453,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
             <div className="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-amber-950 dark:text-amber-200">
-                  Jumlah Keseluruhan Markah Kokurikulum
+                  {dict.totalKokoScoreLabel}
                 </span>
                 <span className="font-black text-amber-800 dark:text-amber-300">
                   {kokoScore10 !== null ? `${((kokoScore10 / 10) * 100).toFixed(0)}% Selesai` : '0%'}
@@ -469,7 +469,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
               <div className="flex items-center justify-between text-[11px] text-amber-900/80 dark:text-amber-300/80">
                 <span>Tahap: {kokoBand} ({kokoGrade})</span>
-                <span>{kokoScore10 !== null ? `${kokoScore10} / 10.0 Markah Penuh` : 'Menunggu input pensyarah'}</span>
+                <span>{kokoScore10 !== null ? `${kokoScore10} / 10.0 Markah Penuh` : dict.waitingLecturerInput}</span>
               </div>
             </div>
 
@@ -528,7 +528,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
             <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
               <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>Markah kokurikulum dan akademik dikunci untuk pelajar dan hanya boleh dikemas kini oleh pensyarah penilai.</span>
+              <span>{dict.kokoLockedNotice}</span>
             </div>
           </div>
 
@@ -553,10 +553,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               {mySchedules.length === 0 ? (
                 <div className="p-5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-center space-y-1.5">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Tiada Jadual Kuliah Buat Masa Ini
+                    {dict.noClassesYet}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                    Jadual kuliah bagi Set {studentSet} belum dimuat naik oleh pensyarah atau pentadbir.
+                    {dict.timetableNotUploaded}
                   </p>
                 </div>
               ) : (
