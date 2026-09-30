@@ -951,14 +951,27 @@ class DataService {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
+          const remoteItems: StudentKokoRecord[] = [];
           if (!snapshot.empty) {
-            const items: StudentKokoRecord[] = [];
             snapshot.forEach((docSnap) => {
-              items.push({ id: docSnap.id, ...(docSnap.data() as any) });
+              remoteItems.push({ id: docSnap.id, ...(docSnap.data() as any) });
             });
-            saveLocal(KEYS.KOKO, items);
-            callback(items);
           }
+
+          const currentLocal = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
+          const map = new Map<string, StudentKokoRecord>();
+          remoteItems.forEach((item) => {
+            const key = (item.studentEmail || item.matricNumber || item.id).toLowerCase();
+            map.set(key, item);
+          });
+          currentLocal.forEach((item) => {
+            const key = (item.studentEmail || item.matricNumber || item.id).toLowerCase();
+            if (!map.has(key)) map.set(key, item);
+          });
+
+          const merged = Array.from(map.values());
+          saveLocal(KEYS.KOKO, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore kokoRecords listener fallback:', error.message);
@@ -974,17 +987,22 @@ class DataService {
   }
 
   public async saveStudentKoko(record: StudentKokoRecord): Promise<void> {
-    const cleanEmail = record.studentEmail.trim().toLowerCase();
+    const cleanEmail = (record.studentEmail || '').trim().toLowerCase();
+    const cleanMatric = (record.matricNumber || cleanEmail.split('@')[0] || '').trim().toUpperCase();
+
     const normalizedRecord: StudentKokoRecord = {
       ...record,
       studentEmail: cleanEmail,
+      matricNumber: cleanMatric,
       id: record.id || `koko-rec-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
     };
 
     const current = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
-    const index = current.findIndex(
-      (r) => r.studentEmail.toLowerCase() === cleanEmail
-    );
+    const index = current.findIndex((r) => {
+      const rEmail = (r.studentEmail || '').trim().toLowerCase();
+      const rMatric = (r.matricNumber || '').trim().toUpperCase();
+      return (cleanEmail && rEmail === cleanEmail) || (cleanMatric && rMatric === cleanMatric);
+    });
 
     let updated: StudentKokoRecord[];
     if (index >= 0) {
@@ -1062,9 +1080,17 @@ class DataService {
             });
           });
 
-          remoteItems.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-          saveLocal(KEYS.KOKO_SUBMISSIONS, remoteItems);
-          callback(remoteItems);
+          const currentLocal = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
+          const map = new Map<string, KokoSubmissionItem>();
+          remoteItems.forEach((item) => map.set(item.id, item));
+          currentLocal.forEach((item) => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+
+          const merged = Array.from(map.values());
+          merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+          saveLocal(KEYS.KOKO_SUBMISSIONS, merged);
+          callback(merged);
         },
         (error) => {
           console.warn('Firestore kokoSubmissions listener fallback:', error.message);
@@ -1171,11 +1197,15 @@ class DataService {
 
     // Automatically recalculate student's published koko marks when approved
     if (status === 'approved') {
-      const allStudentSubmissions = updated.filter(
-        (s) =>
-          s.studentEmail.toLowerCase() === target.studentEmail.toLowerCase() &&
-          s.status === 'approved'
-      );
+      const targetEmail = (target.studentEmail || '').trim().toLowerCase();
+      const targetMatric = (target.matricNumber || '').trim().toUpperCase();
+
+      const allStudentSubmissions = updated.filter((s) => {
+        if (s.status !== 'approved') return false;
+        const sEmail = (s.studentEmail || '').trim().toLowerCase();
+        const sMatric = (s.matricNumber || '').trim().toUpperCase();
+        return (targetEmail && sEmail === targetEmail) || (targetMatric && sMatric === targetMatric);
+      });
 
       let partScore = 0;
       let achScore = 0;
@@ -1189,9 +1219,11 @@ class DataService {
       }
 
       const existingKokoList = getLocal<StudentKokoRecord[]>(KEYS.KOKO, []);
-      const existingKoko = existingKokoList.find(
-        (k) => k.studentEmail.toLowerCase() === target.studentEmail.toLowerCase()
-      );
+      const existingKoko = existingKokoList.find((k) => {
+        const kEmail = (k.studentEmail || '').trim().toLowerCase();
+        const kMatric = (k.matricNumber || '').trim().toUpperCase();
+        return (targetEmail && kEmail === targetEmail) || (targetMatric && kMatric === targetMatric);
+      });
       const jatiDiriScore = existingKoko?.jatiDiriScore ?? null;
       const kokoActivitiesTotal = Math.min(3.0, Math.round((partScore + achScore + posScore) * 1000) / 1000);
       const hasJatiDiri = jatiDiriScore !== null && jatiDiriScore !== undefined && Number(jatiDiriScore) > 0;
