@@ -165,6 +165,52 @@ app.get("/api/auth/session/active", (req, res) => {
   }
 });
 
+// Server-Side Data Sync Store for Cross-Device Synchronization
+const serverDataStore: Record<string, any[]> = {
+  kokoSubmissions: [],
+  submissions: [],
+  notifications: [],
+  grades: [],
+  kokoRecords: [],
+  forumPosts: [],
+  deadlines: [],
+  resources: [],
+};
+
+app.get("/api/sync/:collection", (req, res) => {
+  try {
+    const col = req.params.collection;
+    const items = serverDataStore[col] || [];
+    return res.json({ success: true, items });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/sync/:collection", (req, res) => {
+  try {
+    const col = req.params.collection;
+    const body = req.body;
+    if (!serverDataStore[col]) {
+      serverDataStore[col] = [];
+    }
+
+    if (body && Array.isArray(body.items)) {
+      serverDataStore[col] = body.items;
+    } else if (body && body.id) {
+      const idx = serverDataStore[col].findIndex((x: any) => x.id === body.id);
+      if (idx >= 0) {
+        serverDataStore[col][idx] = body;
+      } else {
+        serverDataStore[col].unshift(body);
+      }
+    }
+    return res.json({ success: true, items: serverDataStore[col] });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Health Check API
 app.get("/api/health", (_req, res) => {
   res.json({

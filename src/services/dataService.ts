@@ -74,6 +74,26 @@ function getLocal<T>(key: string, fallback: T): T {
   }
 }
 
+async function syncToServer(collectionKey: string, item: any) {
+  try {
+    await fetch(`/api/sync/${collectionKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    });
+  } catch {}
+}
+
+async function fetchFromServer(collectionKey: string, callback: (items: any[]) => void) {
+  try {
+    const res = await fetch(`/api/sync/${collectionKey}`);
+    const data = await res.json();
+    if (data?.success && Array.isArray(data.items) && data.items.length > 0) {
+      callback(data.items);
+    }
+  } catch {}
+}
+
 function sanitizeForFirestore<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj as any;
   if (Array.isArray(obj)) {
@@ -482,6 +502,20 @@ class DataService {
     }));
     callback(localData);
 
+    fetchFromServer('submissions', (serverItems) => {
+      const mapped = serverItems.map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) }));
+      const current = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
+      const map = new Map<string, SubmissionRecord>();
+      mapped.forEach((item) => map.set(item.id, item));
+      current.forEach((item) => {
+        if (!map.has(item.id)) map.set(item.id, item);
+      });
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+      saveLocal(KEYS.SUBMISSIONS, merged);
+      callback(merged);
+    });
+
     const unsubSync = registerSyncListener<SubmissionRecord[]>(KEYS.SUBMISSIONS, (data) => {
       callback((data || []).map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) })));
     });
@@ -554,6 +588,7 @@ class DataService {
     );
     const updated = [submission, ...filtered];
     saveLocal(KEYS.SUBMISSIONS, updated);
+    syncToServer('submissions', submission);
 
     try {
       // Remove any prior duplicate documents from Firestore for this student and deadline
@@ -935,6 +970,20 @@ class DataService {
     }));
     callback(localData);
 
+    fetchFromServer('kokoSubmissions', (serverItems) => {
+      const mapped = serverItems.map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) }));
+      const current = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
+      const map = new Map<string, KokoSubmissionItem>();
+      mapped.forEach((item) => map.set(item.id, item));
+      current.forEach((item) => {
+        if (!map.has(item.id)) map.set(item.id, item);
+      });
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+      saveLocal(KEYS.KOKO_SUBMISSIONS, merged);
+      callback(merged);
+    });
+
     const unsubSync = registerSyncListener<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, (data) => {
       callback((data || []).map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) })));
     });
@@ -992,6 +1041,7 @@ class DataService {
     const current = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
     const updated = [newItem, ...current];
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
+    syncToServer('kokoSubmissions', newItem);
 
     // Prepare bounded copy for remote Firestore to guarantee setDoc success (<1MB limit)
     const firestoreDoc = { ...newItem };
