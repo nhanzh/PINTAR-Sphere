@@ -428,24 +428,6 @@ function AppContent() {
         )}
       </main>
 
-      {/* Floating AI Study Mentor Trigger */}
-      {activeTab !== 'ai-assistant' && (
-        <aside aria-label="Floating AI Assistant Launcher" className="fixed bottom-6 right-6 z-30">
-          <button
-            onClick={() => setActiveTab('ai-assistant')}
-            className="group px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-800 text-white font-bold text-xs shadow-lg hover:shadow-xl flex items-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-          >
-            <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            </div>
-            <span>PINTAR AI</span>
-            <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] bg-white/20 font-mono">
-              {dict.tabAiMentor}
-            </span>
-          </button>
-        </aside>
-      )}
-
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs py-4 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">

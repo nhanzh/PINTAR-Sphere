@@ -165,8 +165,12 @@ app.get("/api/auth/session/active", (req, res) => {
   }
 });
 
-// Server-Side Data Sync Store for Cross-Device Synchronization
-const serverDataStore: Record<string, any[]> = {
+import fs from "fs";
+
+// Server-Side Data Sync Store with Disk Persistence for Cross-Device Synchronization
+const STORE_FILE = path.join(process.cwd(), "server_store.json");
+
+let serverDataStore: Record<string, any[]> = {
   kokoSubmissions: [],
   submissions: [],
   notifications: [],
@@ -176,6 +180,26 @@ const serverDataStore: Record<string, any[]> = {
   deadlines: [],
   resources: [],
 };
+
+try {
+  if (fs.existsSync(STORE_FILE)) {
+    const raw = fs.readFileSync(STORE_FILE, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      serverDataStore = { ...serverDataStore, ...parsed };
+    }
+  }
+} catch (e) {
+  console.warn("Failed to load server_store.json:", e);
+}
+
+function persistStore() {
+  try {
+    fs.writeFileSync(STORE_FILE, JSON.stringify(serverDataStore, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Failed to persist server_store.json:", e);
+  }
+}
 
 app.get("/api/sync/:collection", (req, res) => {
   try {
@@ -205,6 +229,7 @@ app.post("/api/sync/:collection", (req, res) => {
         serverDataStore[col].unshift(body);
       }
     }
+    persistStore();
     return res.json({ success: true, items: serverDataStore[col] });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

@@ -88,10 +88,18 @@ async function fetchFromServer(collectionKey: string, callback: (items: any[]) =
   try {
     const res = await fetch(`/api/sync/${collectionKey}`);
     const data = await res.json();
-    if (data?.success && Array.isArray(data.items) && data.items.length > 0) {
+    if (data?.success && Array.isArray(data.items)) {
       callback(data.items);
     }
   } catch {}
+}
+
+function pollFromServer(collectionKey: string, callback: (items: any[]) => void): () => void {
+  fetchFromServer(collectionKey, callback);
+  const timer = setInterval(() => {
+    fetchFromServer(collectionKey, callback);
+  }, 2500);
+  return () => clearInterval(timer);
 }
 
 function sanitizeForFirestore<T>(obj: T): T {
@@ -502,7 +510,7 @@ class DataService {
     }));
     callback(localData);
 
-    fetchFromServer('submissions', (serverItems) => {
+    const stopPoll = pollFromServer('submissions', (serverItems) => {
       const mapped = serverItems.map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) }));
       const current = getLocal<SubmissionRecord[]>(KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS);
       const map = new Map<string, SubmissionRecord>();
@@ -544,10 +552,12 @@ class DataService {
         }
       );
       return () => {
+        stopPoll();
         unsubSync();
         unsubscribe();
       };
     } catch {
+      stopPoll();
       return unsubSync;
     }
   }
@@ -970,7 +980,7 @@ class DataService {
     }));
     callback(localData);
 
-    fetchFromServer('kokoSubmissions', (serverItems) => {
+    const stopPoll = pollFromServer('kokoSubmissions', (serverItems) => {
       const mapped = serverItems.map((sub) => ({ ...sub, setNumber: getStudentSetNumber(sub) }));
       const current = getLocal<KokoSubmissionItem[]>(KEYS.KOKO_SUBMISSIONS, []);
       const map = new Map<string, KokoSubmissionItem>();
@@ -1012,10 +1022,12 @@ class DataService {
         }
       );
       return () => {
+        stopPoll();
         unsubSync();
         unsubscribe();
       };
     } catch {
+      stopPoll();
       return unsubSync;
     }
   }
@@ -1909,6 +1921,24 @@ class DataService {
 
     callback(filterUserNotifs(rawLocal));
 
+    const stopPoll = pollFromServer('notifications', (serverItems) => {
+      const activeDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
+      const currentLocal = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+      const map = new Map<string, AppNotification>();
+      serverItems.forEach((item) => {
+        if (!activeDeleted.has(item.id)) map.set(item.id, item);
+      });
+      currentLocal.forEach((item) => {
+        if (!map.has(item.id) && !activeDeleted.has(item.id)) {
+          map.set(item.id, item);
+        }
+      });
+      const merged = Array.from(map.values()).filter((n) => !activeDeleted.has(n.id));
+      merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      saveLocal(KEYS.NOTIFICATIONS, merged);
+      callback(filterUserNotifs(merged));
+    });
+
     const unsubSync = registerSyncListener<AppNotification[]>(KEYS.NOTIFICATIONS, (data) => {
       const activeDeleted = new Set<string>(getLocal<string[]>('pintar_deleted_notif_ids', []));
       const filtered = (data || []).filter((n) => !activeDeleted.has(n.id));
@@ -1948,10 +1978,12 @@ class DataService {
         }
       );
       return () => {
+        stopPoll();
         unsubSync();
         unsubscribe();
       };
     } catch {
+      stopPoll();
       return unsubSync;
     }
   }
@@ -1969,6 +2001,7 @@ class DataService {
     const current = getLocal<AppNotification[]>(KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
     const updated = [newNotif, ...current];
     saveLocal(KEYS.NOTIFICATIONS, updated);
+    syncToServer('notifications', newNotif);
 
     try {
       await setDoc(doc(db, 'notifications', newNotif.id), sanitizeForFirestore(newNotif));

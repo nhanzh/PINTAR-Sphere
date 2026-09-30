@@ -107,6 +107,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Controls: Broadcast, Theme Toggle, Language Switcher, User Profile */}
           <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* PINTAR AI Header Quick Button */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('ai-assistant')}
+              className={`flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                activeTab === 'ai-assistant'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'bg-gradient-to-r from-indigo-50 dark:from-indigo-950/60 to-blue-50 dark:to-blue-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:from-indigo-100 hover:to-blue-100 dark:hover:from-indigo-900/80 dark:hover:to-blue-900/80'
+              }`}
+              title="PINTAR AI Academic Mentor"
+            >
+              <div className="w-5 h-5 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shrink-0">
+                <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
+              </div>
+              <span className="hidden sm:inline">PINTAR AI</span>
+            </button>
+
             {/* Lecturer Broadcast Button (Vendor Dispatcher) */}
             {!isStudent && onOpenBroadcastModal && (
               <button
