@@ -26,57 +26,7 @@ export interface DummyTestAccount {
   defaultPassword: string;
 }
 
-export const DUMMY_TEST_ACCOUNTS: DummyTestAccount[] = [
-  // Lecturers
-  {
-    role: 'lecturer',
-    name: 'Pusat ASASIpintar Admin Hub',
-    email: 'asasipintarhub@gmail.com',
-    subjectName: 'Penyelaras ASASIpintar UKM',
-    description: 'Admin Hub & Penyelaras ASASIpintar',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'lecturer',
-    name: 'DR. MONA FATIN SYAZWANEE MOHAMED GHAZALI',
-    email: 'monafatin@ukm.edu.my',
-    subjectName: 'Biology I (PNAP0113) & Penyelaras Kokurikulum',
-    description: 'Pensyarah Biologi & Penyelaras Kokurikulum',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'lecturer',
-    name: 'DR. NOR AZAH BINTI NIK JAAFAR',
-    email: 'norazah_nj@ukm.edu.my',
-    subjectName: 'Physics I (PNAP0123)',
-    description: 'Pensyarah Fizik I',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'lecturer',
-    name: 'PM DR. CHIN SIEW XIAN',
-    email: 'chinsiewxian@ukm.edu.my',
-    subjectName: 'Chemistry I (PNAP0133)',
-    description: 'Pensyarah Kimia I',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'lecturer',
-    name: 'PM TO\' PUAN DR. TENGKU ELMI AZLINA TENGKU MUDA',
-    email: 'elmiazlina@ukm.edu.my',
-    subjectName: 'Jati Diri (Self-Development) & Citra',
-    description: 'Pensyarah & Penyelaras Jati Diri Kebangsaan',
-    defaultPassword: '123456',
-  },
-  {
-    role: 'lecturer',
-    name: 'MS. SUHAINA BINTI YAAKOB',
-    email: 'suhainaymd@ukm.edu.my',
-    subjectName: 'Jati Diri (Self-Development) & Research Skills',
-    description: 'Pensyarah & Penyelaras Jati Diri Kebangsaan',
-    defaultPassword: '123456',
-  },
-];
+export const DUMMY_TEST_ACCOUNTS: DummyTestAccount[] = [];
 
 const LOCAL_USERS_KEY = 'pintar_registered_accounts_v1';
 

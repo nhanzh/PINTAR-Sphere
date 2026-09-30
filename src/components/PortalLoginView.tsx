@@ -36,8 +36,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
   const activePortal = lockedPortal || initialPortal || 'student';
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const dummyLecturerAccounts = DUMMY_TEST_ACCOUNTS.filter((d) => d.role === 'lecturer');
-
   const handleQuickDemoLogin = async (acc: DummyTestAccount) => {
     setIsLoading(true);
     setErrorMessage('');
@@ -708,56 +706,6 @@ export const PortalLoginView: React.FC<PortalLoginViewProps> = ({
                     )}
                   </div>
                 </form>
-
-                {/* Fast Dummy Test Accounts for Lecturers */}
-                <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/80">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
-                        🧪
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {lang === 'ms' ? 'Akaun Dummy Ujian Pensyarah' : 'Lecturer Dummy Test Accounts'}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {lang === 'ms'
-                            ? 'Kata laluan rasmi ujian: 123456 • Klik untuk log masuk terus'
-                            : 'Default test password: 123456 • Click to test login immediately'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {dummyLecturerAccounts.map((acc) => (
-                      <button
-                        key={acc.email}
-                        type="button"
-                        onClick={() => handleQuickDemoLogin(acc)}
-                        className="p-3 text-left rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/60 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/60 transition-all cursor-pointer group shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white truncate max-w-[200px]">
-                            {acc.subjectName?.split('(')[0] || 'Pensyarah'}
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                          {acc.name}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5">
-                          {acc.email}
-                        </div>
-                        <div className="mt-2.5 pt-2 border-t border-emerald-200/50 dark:border-emerald-900/40 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-                          <span>K. Laluan: {acc.defaultPassword}</span>
-                          <span className="flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                            Uji Masuk ⚡
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
