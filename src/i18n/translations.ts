@@ -343,6 +343,10 @@ export const t = {
     deleteTaskTooltip: 'Padam Tugasan Ini',
     deleteTaskConfirmTitle: 'Padam Tugasan Ini?',
     yesDeleteTask: 'Ya, Padam Tugasan',
+    noFacultyBroadcasts: 'Tiada Hebahan Terkini Fakulti',
+    noFacultyBroadcastsDesc: 'Sebarang makluman penting, pertukaran dewan kuliah, atau notis penjadualan semula kelas oleh pensyarah akan dipaparkan secara langsung di sini.',
+    academicCourseProgress: 'Kemajuan Penilaian Kursus Akademik',
+    calculateGpa: 'Kira PNGS',
 
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'Tutor & Enjin Penaakulan Akademik AI ASASIpintar',
@@ -709,6 +713,10 @@ export const t = {
     deleteTaskTooltip: 'Delete This Task',
     deleteTaskConfirmTitle: 'Delete This Task?',
     yesDeleteTask: 'Yes, Delete Task',
+    noFacultyBroadcasts: 'No Faculty Broadcasts Yet',
+    noFacultyBroadcastsDesc: 'Any important announcements, lecture hall changes, or class rescheduling notices by lecturers will be displayed directly here.',
+    academicCourseProgress: 'Academic Course Evaluation Progress',
+    calculateGpa: 'Calculate GPA',
 
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI Academic Tutor & Reasoning Engine',
@@ -1075,6 +1083,10 @@ export const t = {
     deleteTaskTooltip: '删除此任务',
     deleteTaskConfirmTitle: '确认删除此任务？',
     yesDeleteTask: '确认删除',
+    noFacultyBroadcasts: '暂无最新学院通知',
+    noFacultyBroadcastsDesc: '讲师发布的任何重要通知、阶梯教室变更或课程调课通知将直接在此显示。',
+    academicCourseProgress: '学术课程评估进度',
+    calculateGpa: '计算绩点 (GPA)',
 
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI 学术导师与推理引擎',
@@ -1441,6 +1453,10 @@ export const t = {
     deleteTaskTooltip: 'இந்த பணியை நீக்கவும்',
     deleteTaskConfirmTitle: 'இந்த பணியை நீக்கவா?',
     yesDeleteTask: 'ஆம், பணியை நீக்கவும்',
+    noFacultyBroadcasts: 'தற்போதைய கல்வி அறிவிப்புகள் எதுவும் இல்லை',
+    noFacultyBroadcastsDesc: 'விரிவுரையாளர்களின் முக்கியமான அறிவிப்புகள், சொற்பொழிவு அரங்க மாற்றங்கள் அல்லது வகுப்பு மறு திட்டமிடல் அறிவிப்புகள் இங்கே நேரடியாகக் காட்டப்படும்.',
+    academicCourseProgress: 'கல்விப் பாட மதிப்பீட்டு முன்னேற்றம்',
+    calculateGpa: 'GPA கணக்கிடுக',
 
     // Additional Core Navigation & View Keys
     aiAssistantBadge: 'ASASIpintar AI கல்வி வழிகாட்டி',

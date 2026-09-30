@@ -269,10 +269,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               <Bell className="w-5 h-5" />
             </div>
             <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Tiada Hebahan Terkini Fakulti
+              {dict.noFacultyBroadcasts}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              Sebarang makluman penting, pertukaran dewan kuliah, atau notis penjadualan semula kelas oleh pensyarah akan dipaparkan secara langsung di sini.
+              {dict.noFacultyBroadcastsDesc}
             </p>
           </div>
         ) : (
@@ -346,18 +346,15 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Kemajuan Penilaian Kursus Akademik
+                    {dict.academicCourseProgress}
                   </h2>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center gap-1 border border-slate-200 dark:border-slate-700">
-                    <Lock className="w-3 h-3" /> Paparan Sahaja
-                  </span>
                 </div>
               </div>
               <button
                 onClick={() => setActiveTab('gpa')}
                 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center cursor-pointer shrink-0"
               >
-                Kira PNGS <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                {dict.calculateGpa} <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
               </button>
             </div>
 
@@ -439,9 +436,6 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
                   <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                     {dict.kokoProgressTitle}
                   </h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Pecahan: Pembangunan Jati Diri (7.0%) dan Aktiviti Kokurikulum (3.0%).
-                  </p>
                 </div>
               </div>
               <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-800">
