@@ -766,12 +766,12 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     Bahagian 1: Pembangunan Jati Diri &amp; Kebangsaan
                   </h3>
                   <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase">
-                    Wajaran: 7.00%
+                    Wajaran Modul: 7.00%
                   </span>
                 </div>
               </div>
-              <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-                {jatiDiri !== null ? `${jatiDiri.toFixed(2)} / 7.00%` : '7.00% Maks'}
+              <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                7.00% Maksimum
               </span>
             </div>
             <div className="text-xs text-slate-500 leading-relaxed">
@@ -811,38 +811,38 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
                     Bahagian 2: Aktiviti Kokurikulum
                   </h3>
                   <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">
-                    Wajaran: 3.00% (Kat A + Kat B + Kat C)
+                    Wajaran Modul: 3.00% (Kat A + Kat B + Kat C)
                   </span>
                 </div>
               </div>
-              <span className="text-lg font-black text-amber-600 dark:text-amber-400">
-                {kokoActivitiesTotal !== null ? `${kokoActivitiesTotal.toFixed(2)} / 3.00%` : '3.00% Maks'}
+              <span className="text-sm font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-3 py-1 rounded-xl border border-amber-200 dark:border-amber-800">
+                3.00% Maksimum
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-xs text-center font-semibold">
-              <div className="p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900">
+              <div className="p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900">
                 <span className="text-[10px] uppercase text-amber-800 dark:text-amber-300 font-bold block">
                   Kat A: Penyertaan
                 </span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">
-                  {(myKoko?.kokoParticipation ?? 0).toFixed(2)} / 1.0
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                  Maks 1.00%
                 </span>
               </div>
-              <div className="p-2 rounded-xl bg-orange-50/60 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900">
+              <div className="p-2.5 rounded-xl bg-orange-50/60 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900">
                 <span className="text-[10px] uppercase text-orange-800 dark:text-orange-300 font-bold block">
                   Kat B: Pencapaian
                 </span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">
-                  {(myKoko?.kokoAchievement ?? 0).toFixed(2)} / 1.0
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                  Maks 1.00%
                 </span>
               </div>
-              <div className="p-2 rounded-xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900">
+              <div className="p-2.5 rounded-xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900">
                 <span className="text-[10px] uppercase text-rose-800 dark:text-rose-300 font-bold block">
                   Kat C: Perjawatan
                 </span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">
-                  {(myKoko?.kokoPosition ?? 0).toFixed(2)} / 1.0
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                  Maks 1.00%
                 </span>
               </div>
             </div>
