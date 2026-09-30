@@ -122,22 +122,34 @@ function sanitizeForFirestore<T>(obj: T): T {
 function saveLocal<T>(key: string, data: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
-    if (syncChannel) {
-      try {
-        syncChannel.postMessage({ key, data });
-      } catch (e) {
-        // ignore
-      }
-    }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('pintar_realtime_data_change', {
-          detail: { key, data },
-        })
-      );
-    }
   } catch (err) {
-    console.warn('Failed to save to localStorage', err);
+    console.warn('Failed to save to localStorage, attempting lightweight fallback', err);
+    try {
+      if (Array.isArray(data)) {
+        const lightweight = data.map((item: any) => {
+          if (item && item.fileUrl && typeof item.fileUrl === 'string' && item.fileUrl.length > 200000) {
+            return { ...item, fileUrl: item.externalUrl || '#' };
+          }
+          return item;
+        });
+        localStorage.setItem(key, JSON.stringify(lightweight));
+      }
+    } catch {}
+  }
+
+  if (syncChannel) {
+    try {
+      syncChannel.postMessage({ key, data });
+    } catch (e) {
+      // ignore
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('pintar_realtime_data_change', {
+        detail: { key, data },
+      })
+    );
   }
 }
 
@@ -261,14 +273,23 @@ class DataService {
     // Optimistic local update
     const deletedIds = new Set<string>(getLocal<string[]>('pintar_deleted_resource_ids', []));
     const current = getLocal<ResourceItem[]>(KEYS.RESOURCES, INITIAL_RESOURCES).filter(
-      (item) => !deletedIds.has(item.id)
+      (item) => item && item.id && !deletedIds.has(item.id)
     );
     const updated = [newItem, ...current];
     saveLocal(KEYS.RESOURCES, updated);
 
+    // Prepare safe document for Firestore (prevent >1MB limit error on large Base64 dataUrls)
+    let firestoreDoc = { ...newItem };
+    if (firestoreDoc.fileUrl && firestoreDoc.fileUrl.length > 400000) {
+      firestoreDoc = {
+        ...firestoreDoc,
+        fileUrl: firestoreDoc.externalUrl || '#',
+      };
+    }
+
     // Sync to Firestore
     try {
-      await setDoc(doc(db, 'resources', newItem.id), sanitizeForFirestore(newItem));
+      await setDoc(doc(db, 'resources', newItem.id), sanitizeForFirestore(firestoreDoc));
     } catch (err) {
       console.warn('Firestore addResource sync error:', err);
     }

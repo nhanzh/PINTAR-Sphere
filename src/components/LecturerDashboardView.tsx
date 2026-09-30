@@ -171,13 +171,25 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   };
 
   // Filter resources uploaded by this lecturer or for their subject
-  const myResources = resources.filter(
-    (r) =>
-      r.courseCode === subjectCode ||
-      r.subject.toLowerCase().includes(subjectName.toLowerCase()) ||
-      r.uploaderEmail === user.email ||
-      user.email === 'asasipintarhub@gmail.com'
-  );
+  const myResources = resources.filter((r) => {
+    if (!r) return false;
+    const userEmailLower = (user.email || '').toLowerCase().trim();
+    const userNameLower = (user.name || '').toLowerCase().trim();
+
+    const isUploader =
+      (r.uploaderEmail && userEmailLower && r.uploaderEmail.toLowerCase().trim() === userEmailLower) ||
+      (r.uploadedBy && userNameLower && r.uploadedBy.toLowerCase().trim() === userNameLower);
+
+    const isSubjectMatch =
+      (r.courseCode && subjectCode && r.courseCode.toUpperCase() === subjectCode.toUpperCase()) ||
+      (r.subject && subjectName && r.subject.toLowerCase().includes(subjectName.toLowerCase())) ||
+      (user.taughtSubjectCode && r.courseCode && r.courseCode.toUpperCase() === user.taughtSubjectCode.toUpperCase());
+
+    const isHubAdmin =
+      isProgramCoordinator(user.email, user.name) || userEmailLower === 'asasipintarhub@gmail.com';
+
+    return isUploader || isSubjectMatch || isHubAdmin;
+  });
 
   const confirmDeleteMaterial = async () => {
     if (!materialToDelete) return;

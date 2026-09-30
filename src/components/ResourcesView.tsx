@@ -79,14 +79,23 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
     }
 
     // 2. Subject filter
+    const userEmailLower = (user.email || '').toLowerCase().trim();
+    const userNameLower = (user.name || '').toLowerCase().trim();
+    const isMyUpload =
+      (res.uploaderEmail && userEmailLower && res.uploaderEmail.toLowerCase().trim() === userEmailLower) ||
+      (res.uploadedBy && userNameLower && res.uploadedBy.toLowerCase().trim() === userNameLower);
+
     if (!isStudent && user.role === 'lecturer' && !isAdminHub) {
-      // Non-admin lecturers see materials matching their course or general Hub materials
-      if (
-        res.courseCode !== lecturerSubject.code &&
-        res.courseCode !== 'ASASI-HUB' &&
-        res.courseCode !== 'GENERAL' &&
-        res.courseCode !== 'UMUM'
-      ) {
+      // Non-admin lecturers see their own uploads, materials matching their course, or general Hub materials
+      const isCourseMatch =
+        res.courseCode === lecturerSubject.code ||
+        (user.taughtSubjectCode && res.courseCode === user.taughtSubjectCode);
+      const isGeneralHub =
+        res.courseCode === 'ASASI-HUB' ||
+        res.courseCode === 'GENERAL' ||
+        res.courseCode === 'UMUM';
+
+      if (!isMyUpload && !isCourseMatch && !isGeneralHub && selectedSubjectId !== 'all') {
         return false;
       }
     } else if (selectedSubjectId !== 'all') {
@@ -99,7 +108,7 @@ export const ResourcesView: React.FC<ResourcesViewProps> = ({
           res.courseCode === 'GENERAL' ||
           res.courseCode === 'UMUM' ||
           res.uploaderEmail === 'asasipintarhub@gmail.com';
-        if (!matchesCode && !isHubGeneral) {
+        if (!isMyUpload && !matchesCode && !isHubGeneral) {
           return false;
         }
       }
