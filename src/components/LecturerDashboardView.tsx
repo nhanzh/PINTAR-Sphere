@@ -42,6 +42,8 @@ import {
   MapPin,
   Shield,
   Sparkles,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { ResourceItem } from '../types.ts';
 import { dataService } from '../services/dataService.ts';
@@ -109,6 +111,8 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
   const [deadlineToDelete, setDeadlineToDelete] = useState<DeadlineItem | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<SubmissionRecord | null>(null);
   const [cancellingBroadcastId, setCancellingBroadcastId] = useState<string | null>(null);
+  const [rejectingSub, setRejectingSub] = useState<KokoSubmissionItem | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
 
   const subjectName = user.taughtSubjectName || 'Chemistry I';
   const subjectCode = user.taughtSubjectCode || 'PNAP0133';
@@ -142,11 +146,27 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
     setTimeout(() => setKokoActionToast(null), 5000);
   };
 
-  const handleRejectKoko = async (sub: KokoSubmissionItem) => {
-    setIsReviewingKoko(sub.id);
-    await dataService.reviewKokoSubmission(sub.id, 'rejected', 0, user.name);
+  const handleOpenRejectModal = (sub: KokoSubmissionItem) => {
+    setRejectingSub(sub);
+    setRejectionReasonInput('');
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingSub) return;
+    const finalReason = rejectionReasonInput.trim() || 'Maklumat atau sijil lampiran tidak memenuhi kriteria.';
+    setIsReviewingKoko(rejectingSub.id);
+    await dataService.reviewKokoSubmission(
+      rejectingSub.id,
+      'rejected',
+      0,
+      user.name,
+      rejectingSub.subCategory,
+      finalReason
+    );
     setIsReviewingKoko(null);
-    setKokoActionToast(`Permohonan "${sub.activityName}" bagi ${sub.studentName} telah ditolak.`);
+    setRejectingSub(null);
+    setRejectionReasonInput('');
+    setKokoActionToast(`Permohonan "${rejectingSub.activityName}" bagi ${rejectingSub.studentName} telah ditolak.`);
     setTimeout(() => setKokoActionToast(null), 5000);
   };
 
@@ -539,7 +559,7 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                           <button
                             type="button"
                             disabled={isReviewingKoko === sub.id}
-                            onClick={() => handleRejectKoko(sub)}
+                            onClick={() => handleOpenRejectModal(sub)}
                             className="px-3 py-1 rounded-xl border border-rose-300 text-rose-700 text-xs font-bold hover:bg-rose-50 cursor-pointer"
                           >
                             Tolak
@@ -1080,6 +1100,88 @@ export const LecturerDashboardView: React.FC<LecturerDashboardViewProps> = ({
                 className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
               >
                 Ya, Padam Penyerahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REJECTION REASON FOR LECTURER */}
+      {rejectingSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 dark:border-rose-900 animate-in fade-in zoom-in-95 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
+                <AlertCircle className="w-5 h-5" />
+                <span>Tolak Permohonan Kokurikulum</span>
+              </div>
+              <button
+                onClick={() => setRejectingSub(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700">
+                <div className="font-bold text-slate-900 dark:text-white">{rejectingSub.activityName}</div>
+                <div className="text-[11px] text-slate-500">
+                  Pelajar: {rejectingSub.studentName} ({rejectingSub.matricNumber}) • Set {getStudentSetNumber(rejectingSub)}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                  Nyatakan Sebab Penolakan (Akan dipaparkan kepada pelajar):
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="cth: Sijil lampiran tidak jelas atau nama pelajar tidak tertera pada sijil pengesahan."
+                  value={rejectionReasonInput}
+                  onChange={(e) => setRejectionReasonInput(e.target.value)}
+                  className="w-full p-3 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+
+              {/* Quick Preset Reason Buttons */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Pilih Sebab Pantas:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Sijil lampiran tidak jelas / tidak sah',
+                    'Butiran masa/tempat tidak mencukupi',
+                    'Tahap peringkat aktiviti tidak betul',
+                    'Bukan dalam tempoh pengajian ASASIpintar',
+                  ].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setRejectionReasonInput(p)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium cursor-pointer"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setRejectingSub(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Sahkan Penolakan
               </button>
             </div>
           </div>
