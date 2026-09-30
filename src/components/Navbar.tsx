@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, ActiveTab, UserRole } from '../types.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
-import { SUPPORTED_LANGUAGES, Language } from '../i18n/translations.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
 import { getStudentSetNumber, isKokoCoordinator, canAccessJatiDiriMarks, canAccessKokoModule } from '../utils/studentUtils.ts';
 import {
@@ -55,13 +54,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { lang, setLang, dict } = useLanguage();
 
   const unreadNotifCount = notifications.filter((n) => !n.isRead).length;
-  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   const isStudent = user.role === 'student';
-
-  const currentLangObj =
-    SUPPORTED_LANGUAGES.find((l) => l.code === lang) || SUPPORTED_LANGUAGES[0];
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors">
@@ -166,57 +161,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Dark/Light Theme Toggle */}
             <ThemeToggle variant="icon" />
-
-            {/* 4-Language Switcher Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-                title="Change language"
-              >
-                <span className="text-sm">{currentLangObj.flag}</span>
-                <span className="hidden sm:inline">{currentLangObj.nativeLabel}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {isLangDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsLangDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                      {dict.selectLanguage}
-                    </div>
-                    {SUPPORTED_LANGUAGES.map((item) => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        onClick={() => {
-                          setLang(item.code);
-                          setIsLangDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-left transition-colors cursor-pointer ${
-                          lang === item.code
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold'
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{item.flag}</span>
-                          <span>{item.nativeLabel}</span>
-                        </div>
-                        {lang === item.code && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
 
             {/* Role-Locked User Profile Chip with Logout Dropdown */}
             <div className="relative">

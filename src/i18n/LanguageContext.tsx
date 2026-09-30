@@ -24,26 +24,20 @@ function createSafeDict(currentLang: Language): typeof t['ms'] {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  lang: 'ms',
+  lang: 'en',
   setLang: () => {},
-  dict: createSafeDict('ms'),
+  dict: createSafeDict('en'),
 });
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [lang, setLangState] = useState<Language>(() => {
-    const saved = localStorage.getItem('pintar_language') as Language;
-    if (saved && (saved === 'ms' || saved === 'en' || saved === 'zh' || saved === 'ta')) {
-      return saved;
-    }
-    return 'ms'; // Default to Bahasa Melayu
-  });
+  const [lang, setLangState] = useState<Language>('en');
 
-  const setLang = (newLang: Language) => {
-    setLangState(newLang);
-    localStorage.setItem('pintar_language', newLang);
+  const setLang = (_newLang: Language) => {
+    setLangState('en');
+    localStorage.setItem('pintar_language', 'en');
   };
 
-  const dict = createSafeDict(lang);
+  const dict = createSafeDict('en');
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, dict }}>
