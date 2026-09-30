@@ -1132,8 +1132,8 @@ class DataService {
 
     // Prepare bounded copy for remote Firestore to guarantee setDoc success (<1MB limit)
     const firestoreDoc = { ...newItem };
-    if (firestoreDoc.certificateFileUrl && firestoreDoc.certificateFileUrl.length > 600000) {
-      firestoreDoc.certificateFileUrl = firestoreDoc.certificateFileUrl.substring(0, 600000);
+    if (firestoreDoc.certificateFileUrl && firestoreDoc.certificateFileUrl.length > 200000) {
+      firestoreDoc.certificateFileUrl = firestoreDoc.certificateFileUrl.substring(0, 200000);
     }
 
     try {
@@ -1180,8 +1180,13 @@ class DataService {
     const updated = current.map((s) => (s.id === submissionId ? updatedItem : s));
     saveLocal(KEYS.KOKO_SUBMISSIONS, updated);
 
+    const firestoreReviewDoc = { ...updatedItem };
+    if (firestoreReviewDoc.certificateFileUrl && firestoreReviewDoc.certificateFileUrl.length > 200000) {
+      firestoreReviewDoc.certificateFileUrl = firestoreReviewDoc.certificateFileUrl.substring(0, 200000);
+    }
+
     try {
-      await setDoc(doc(db, 'kokoSubmissions', submissionId), sanitizeForFirestore(updatedItem));
+      await setDoc(doc(db, 'kokoSubmissions', submissionId), sanitizeForFirestore(firestoreReviewDoc));
     } catch (err) {
       console.warn('Firestore reviewKokoSubmission error:', err);
     }

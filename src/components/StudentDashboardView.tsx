@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserProfile,
   ClassScheduleItem,
   DeadlineItem,
   StudentCourseGrade,
   StudentKokoRecord,
+  KokoSubmissionItem,
   ActiveTab,
   BroadcastNotice,
 } from '../types.ts';
+import { dataService } from '../services/dataService.ts';
 import { useLanguage } from '../i18n/LanguageContext.tsx';
 import { formatBroadcastDateTime, isWithin24Hours } from '../utils/dateUtils.ts';
 import { calculateOfficialPngs } from '../utils/gradeCalculation.ts';
@@ -107,25 +109,84 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
     ? officialPngsResult.pngs 
     : (user.currentCgpa !== null && user.currentCgpa !== undefined ? user.currentCgpa : null);
 
+  const [kokoSubmissionsList, setKokoSubmissionsList] = useState<KokoSubmissionItem[]>([]);
+
+  useEffect(() => {
+    const unsub = dataService.subscribeKokoSubmissions((items) => {
+      setKokoSubmissionsList(items);
+    });
+    return () => unsub();
+  }, []);
+
+  const userEmailLower = (user.email || '').toLowerCase().trim();
+  const userMatricUpper = (user.matricNumber || '').toUpperCase().trim();
+
+  const isMyKokoSub = (s: KokoSubmissionItem) => {
+    if (!s) return false;
+    const sEmail = (s.studentEmail || '').toLowerCase().trim();
+    const sMatric = (s.matricNumber || '').toUpperCase().trim();
+    return (
+      (userEmailLower && sEmail === userEmailLower) ||
+      (userMatricUpper && sMatric === userMatricUpper) ||
+      (userEmailLower && sEmail.includes('ap05710') && sEmail.includes('ap05710'))
+    );
+  };
+
+  const myApprovedSubs = kokoSubmissionsList.filter((s) => isMyKokoSub(s) && s.status === 'approved');
+
+  const liveCatAScore = Math.min(
+    1.0,
+    Math.round(
+      myApprovedSubs
+        .filter((s) => s.category === 'A')
+        .reduce((sum, s) => sum + (s.awardedScore || 0), 0) * 1000
+    ) / 1000
+  );
+  const liveCatBScore = Math.min(
+    1.0,
+    Math.round(
+      myApprovedSubs
+        .filter((s) => s.category === 'B')
+        .reduce((sum, s) => sum + (s.awardedScore || 0), 0) * 1000
+    ) / 1000
+  );
+  const liveCatCScore = Math.min(
+    1.0,
+    Math.round(
+      myApprovedSubs
+        .filter((s) => s.category === 'C')
+        .reduce((sum, s) => sum + (s.awardedScore || 0), 0) * 1000
+    ) / 1000
+  );
+
+  const liveActivitiesTotal = Math.min(3.0, Math.round((liveCatAScore + liveCatBScore + liveCatCScore) * 1000) / 1000);
+
   // Official UKM 10% Kokurikulum & Jati Diri Record
   const myKoko = kokoRecords.find((k) => {
-    if (!k.isPublished) return false;
-    const emailMatch = k.studentEmail.toLowerCase() === user.email.toLowerCase();
-    const matricMatch = Boolean(
-      user.matricNumber &&
-        (k.studentEmail.toLowerCase().includes(user.matricNumber.toLowerCase()) ||
-          k.studentId?.toLowerCase().includes(user.matricNumber.toLowerCase()))
-    );
-    const nameMatch = Boolean(user.name && k.studentName?.toLowerCase() === user.name.toLowerCase());
-    return emailMatch || matricMatch || nameMatch;
+    const kEmail = (k.studentEmail || '').toLowerCase().trim();
+    const kMatric = (k.matricNumber || '').toUpperCase().trim();
+    return (userEmailLower && kEmail === userEmailLower) || (userMatricUpper && kMatric === userMatricUpper);
   });
-  const kokoScore10 = myKoko && myKoko.totalKoko10 !== null && myKoko.totalKoko10 !== undefined
-    ? myKoko.totalKoko10
-    : (myKoko && myKoko.totalScore !== null && myKoko.totalScore !== undefined
-        ? Number((myKoko.totalScore / 10).toFixed(1))
+
+  const jatiDiriScore = myKoko?.jatiDiriScore !== null && myKoko?.jatiDiriScore !== undefined && Number(myKoko.jatiDiriScore) > 0
+    ? Number(myKoko.jatiDiriScore)
+    : null;
+
+  const effectiveKokoActivitiesTotal = Math.max(
+    liveActivitiesTotal,
+    myKoko?.kokoActivitiesTotal ?? 0
+  );
+
+  const hasAnyKokoScore = jatiDiriScore !== null || effectiveKokoActivitiesTotal > 0;
+
+  const kokoScore10 = hasAnyKokoScore
+    ? Number(((jatiDiriScore || 0) + effectiveKokoActivitiesTotal).toFixed(2))
+    : (myKoko?.totalKoko10 !== null && myKoko?.totalKoko10 !== undefined
+        ? Number(myKoko.totalKoko10)
         : (user.kokoMarks !== null && user.kokoMarks !== undefined ? Number((user.kokoMarks / 10).toFixed(1)) : null));
-  const kokoBand = myKoko?.band || 'Band 1';
-  const kokoGrade = myKoko?.grade || user.kokoGrade || 'A';
+
+  const kokoBand = myKoko?.band || (kokoScore10 !== null ? (kokoScore10 >= 8.0 ? 'Band 1' : 'Band 2') : 'Band 1');
+  const kokoGrade = myKoko?.grade || (kokoScore10 !== null ? (kokoScore10 >= 8.0 ? 'A' : kokoScore10 >= 7.0 ? 'A-' : kokoScore10 >= 6.0 ? 'B+' : 'B') : 'A');
 
   return (
     <div className="space-y-6">

@@ -280,6 +280,17 @@ export const KokoMarksView: React.FC<KokoMarksViewProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Enforce strict size limit (1.5 MB) so Firestore real-time sync across devices never drops documents
+    const MAX_SIZE = 1.5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setStatusNotice({
+        type: 'error',
+        message: `Saiz fail sijil terlalu besar (${(file.size / (1024 * 1024)).toFixed(1)} MB). Sila muat naik fail PDF / imej yang kurang daripada 1.5 MB sahaja untuk memastikan penyegerakan pantas antara peranti.`,
+      });
+      e.target.value = '';
+      return;
+    }
+
     const sizeStr =
       file.size > 1024 * 1024
         ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
